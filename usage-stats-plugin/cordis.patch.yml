@@ -1,0 +1,6 @@
+# Insert the Usage Statistics Host service and its Client page.
+- insert:
+    - id: usage-stats
+      name: '@local/dsh-usage-stats'
+      config:
+        budgetUsd: 5

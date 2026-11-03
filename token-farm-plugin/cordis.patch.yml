@@ -1,0 +1,5 @@
+# Insert the Token Farm Client page.
+- insert:
+    - id: token-bloom
+      name: '@local/dsh-token-bloom'
+      config: {}
