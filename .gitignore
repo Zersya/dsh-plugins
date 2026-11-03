@@ -1,0 +1,5 @@
+# Local tooling state, never part of the plugins
+.agent-browser/
+node_modules/
+.DS_Store
+*.log

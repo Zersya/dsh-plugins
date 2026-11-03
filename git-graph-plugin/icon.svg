@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Git Graph">
+  <defs>
+    <linearGradient id="gg-bg" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#16233b"/>
+      <stop offset="1" stop-color="#0a1120"/>
+    </linearGradient>
+    <linearGradient id="gg-main" x1="22" y1="12" x2="22" y2="52" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8ac6ff"/>
+      <stop offset="1" stop-color="#4f7cf7"/>
+    </linearGradient>
+    <linearGradient id="gg-branch" x1="42" y1="18" x2="26" y2="40" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7ce8b8"/>
+      <stop offset="1" stop-color="#2f9e63"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#gg-bg)"/>
+  <rect x="2.6" y="2.6" width="58.8" height="58.8" rx="14.4" fill="none" stroke="#ffffff" stroke-opacity=".08" stroke-width="1.2"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M22 13.5v37" stroke="url(#gg-main)" stroke-width="2.8"/>
+    <path d="M42 21.5v7.5c0 4.6-3.2 7.6-8 7.6h-6.5" stroke="url(#gg-branch)" stroke-width="2.8"/>
+  </g>
+  <g fill="#0b1220">
+    <circle cx="22" cy="18" r="4" stroke="#8ac6ff" stroke-width="2.6"/>
+    <circle cx="22" cy="37" r="4.8" stroke="#8ac6ff" stroke-width="2.6"/>
+    <circle cx="42" cy="19" r="4" stroke="#7ce8b8" stroke-width="2.6"/>
+    <circle cx="22" cy="50" r="4" stroke="#ffc46b" stroke-width="2.6"/>
+  </g>
+</svg>

@@ -1,0 +1,3 @@
+- insert:
+    - id: engineering-canvas
+      name: '@local/engineering-canvas'

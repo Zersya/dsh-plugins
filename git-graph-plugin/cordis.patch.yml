@@ -1,0 +1,3 @@
+- insert:
+    - id: git-graph
+      name: '@local/git-graph'

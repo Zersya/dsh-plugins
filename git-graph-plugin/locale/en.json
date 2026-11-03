@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Git Graph",
+    "description": "A Git history View inside each conversation: commit lanes, branches, tags, and the working tree of that session's own directory or worktree."
+  }
+}
