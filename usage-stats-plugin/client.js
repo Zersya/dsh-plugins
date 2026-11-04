@@ -193,6 +193,7 @@ window.__ModuleLoader__.load({
       .dsx-rate-split-seg { height:100%; }
       .dsx-rate-split-seg.peak { background:var(--dsw-alias-state-warn-primary); }
       .dsx-rate-split-seg.off { background:var(--dsw-alias-state-success-primary); }
+      .dsx-rate-split-seg.flat { background:var(--dsw-alias-label-secondary); opacity:.45; }
       .dsx-rate-split-legend { display:flex; flex-wrap:wrap; gap:6px 20px; margin-top:8px; color:var(--dsw-alias-label-secondary); font-size:10.5px; }
       .dsx-rate-split-legend b { color:var(--dsw-alias-label-primary); font-weight:550; font-variant-numeric:tabular-nums; }
       .dsx-week { margin-top:16px; padding-top:14px; border-top:1px solid var(--dsw-alias-border-l1); }
@@ -247,6 +248,35 @@ window.__ModuleLoader__.load({
       .dsx-facts dd { margin:2px 0 0; font-size:12px; font-weight:550; font-variant-numeric:tabular-nums; }
       .dsx-model-line { display:flex; flex-wrap:wrap; gap:6px; margin-top:14px; }
       .dsx-chip { padding:2px 7px; border:1px solid var(--dsw-alias-border-l1); border-radius:999px; color:var(--dsw-alias-label-secondary); font-size:10px; }
+      .dsx-prov-list { margin-top:15px; }
+      .dsx-prov-row { padding:12px 0 13px; border-top:1px solid var(--dsw-alias-border-l1); }
+      .dsx-prov-row:first-child { border-top:0; padding-top:4px; }
+      .dsx-prov-head { display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+      .dsx-prov-name { display:flex; align-items:center; gap:8px; min-width:0; }
+      .dsx-prov-name b { font-size:12.5px; font-weight:550; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .dsx-prov-tag {
+        padding:1px 6px; border:1px solid var(--dsw-alias-border-l1); border-radius:999px;
+        color:var(--dsw-alias-label-secondary); font-size:9px; letter-spacing:.03em;
+        text-transform:uppercase; white-space:nowrap; flex:0 0 auto;
+      }
+      .dsx-prov-tag.is-peak { color:var(--dsw-alias-state-warn-primary); border-color:currentColor; }
+      .dsx-prov-tag.is-flat { color:var(--dsw-alias-state-success-primary); border-color:currentColor; }
+      .dsx-prov-cost { text-align:right; font-size:12px; font-weight:550; font-variant-numeric:tabular-nums; white-space:nowrap; }
+      .dsx-prov-cost span { display:block; margin-top:2px; color:var(--dsw-alias-label-secondary); font-size:10px; font-weight:400; }
+      .dsx-prov-meta { margin-top:5px; color:var(--dsw-alias-label-secondary); font-size:10.5px; font-variant-numeric:tabular-nums; }
+      .dsx-prov-track { height:3px; margin-top:7px; border-radius:999px; background:var(--dsw-alias-bg-layer-2); overflow:hidden; }
+      .dsx-prov-fill { height:100%; border-radius:999px; background:var(--dsw-alias-label-primary); opacity:.55; }
+      .dsx-prov-models { display:flex; flex-wrap:wrap; gap:5px; margin-top:7px; }
+      .dsx-prov-models .dsx-chip { font-variant-numeric:tabular-nums; }
+      .dsx-plan-top { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; margin-top:16px; }
+      .dsx-plan-balance { font-size:31px; line-height:1; font-weight:550; letter-spacing:-.035em; font-variant-numeric:tabular-nums; }
+      .dsx-plan-balance-note { margin-top:5px; color:var(--dsw-alias-label-secondary); font-size:10.5px; }
+      .dsx-plan-windows { display:grid; gap:13px; margin-top:17px; }
+      .dsx-plan-window-head { display:flex; align-items:baseline; justify-content:space-between; gap:10px; font-size:11px; }
+      .dsx-plan-window-head span { color:var(--dsw-alias-label-secondary); font-size:10px; font-variant-numeric:tabular-nums; }
+      .dsx-plan-window-head b { font-weight:550; font-variant-numeric:tabular-nums; }
+      .dsx-plan-window .dsx-meter { height:6px; margin-top:6px; }
+      .dsx-plan-window-foot { margin-top:4px; color:var(--dsw-alias-label-secondary); font-size:9.5px; font-variant-numeric:tabular-nums; }
       .dsx-empty { padding:34px 0; color:var(--dsw-alias-label-secondary); font-size:12px; }
       .dsx-state { min-height:64vh; display:grid; place-items:center; text-align:center; padding:30px; }
       .dsx-state-title { font-size:18px; font-weight:600; letter-spacing:-.02em; }
@@ -317,6 +347,14 @@ window.__ModuleLoader__.load({
       }
       .dsx-rate-badge.is-peak { color:var(--dsw-alias-state-warn-primary); }
       .dsx-rate-badge.is-off { color:var(--dsw-alias-state-success-primary); }
+      .dsx-credit-chip {
+        display:inline-flex; align-items:center; gap:5px; padding:1px 7px;
+        border:1px solid var(--dsw-alias-border-l2); border-radius:999px;
+        color:var(--dsw-alias-label-primary); font-variant-numeric:tabular-nums;
+      }
+      .dsx-credit-chip b { font-weight:600; }
+      .dsx-credit-chip.is-warn { color:var(--dsw-alias-state-warn-primary); border-color:currentColor; }
+      .dsx-credit-plan { color:var(--dsw-alias-label-secondary); font-weight:600; font-size:9px; letter-spacing:.045em; }
       .dsx-session-cost { color:var(--dsw-alias-label-primary); opacity:.82; }
       .dsx-session-cost.is-stale { opacity:.5; }
     `;
@@ -357,6 +395,12 @@ window.__ModuleLoader__.load({
       const n = Number(value);
       if (!Number.isFinite(n)) return '—';
       return `${n.toFixed(digits)}%`;
+    }
+
+    function clampPct(value) {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return 0;
+      return Math.max(0, Math.min(100, n));
     }
 
     function fmtDuration(ms) {
@@ -409,17 +453,30 @@ window.__ModuleLoader__.load({
 
     function modelLabel(model) {
       if (!model || model === 'unknown') return 'Unknown model';
-      return model.split('-').map((part, index) => {
-        if (index === 0 && part.toLowerCase() === 'deepseek') return 'DeepSeek';
-        if (/^v\d+$/i.test(part)) return part.toUpperCase();
+      // Providers report a vendor prefix and an adapter response suffix; neither is the model name.
+      const id = String(model).split('/').pop().replace(/-\d{3,4}-cm$/, '');
+      return id.split(/[-_]/).filter(Boolean).map((part, index) => {
+        const lower = part.toLowerCase();
+        if (index === 0 && lower === 'deepseek') return 'DeepSeek';
+        if (/^v\d+(\.\d+)?$/i.test(part)) return part.toUpperCase();
+        if (lower === 'gpt' || lower === 'glm' || lower === 'ai' || lower === 'xai') return lower.toUpperCase();
         return part.charAt(0).toUpperCase() + part.slice(1);
       }).join(' ');
     }
 
     function rateLabel(mode) {
       if (mode === 'peak') return 'peak rates';
-      if (mode === 'mixed') return 'peak + off-peak rates';
+      if (mode === 'mixed') return 'mixed provider rates';
+      if (mode === 'flat') return 'flat rates';
       return 'off-peak rates';
+    }
+
+    /** How a provider's billing clock is described in the provider list. */
+    function scheduleLabel(schedule) {
+      if (schedule === 'deepseek') return 'peak windows';
+      if (schedule === 'deepseek-weekday') return 'weekday peak';
+      if (schedule === 'mixed') return 'mixed';
+      return 'flat rate';
     }
 
     /* ------------------------------------------------- peak schedule helpers */
@@ -622,13 +679,21 @@ window.__ModuleLoader__.load({
       }, []);
 
       if (!schedule) return null;
+      // Nothing on this ledger bills on hourly windows, so a rate clock would be noise.
+      if (schedule.usingPeak === false) return null;
 
       const view = scheduleView(schedule, now);
       const spend = pricing.spend;
-      const total = spend ? spend.peakUsd + spend.offPeakUsd : 0;
+      const flatUsd = Number(spend?.flatUsd) || 0;
+      const total = spend ? spend.peakUsd + spend.offPeakUsd + flatUsd : 0;
       const peakShare = total > 0 ? spend.peakUsd / total * 100 : 0;
+      const flatShare = total > 0 ? flatUsd / total * 100 : 0;
       const next = view.next;
       const windowsText = upcomingWindowText(schedule, now);
+      const peakProviders = (pricing.providers ?? [])
+        .filter((entry) => entry.schedule === 'deepseek' || entry.schedule === 'deepseek-weekday')
+        .map((entry) => entry.displayName);
+      const honorsHolidays = (pricing.providers ?? []).some((entry) => entry.schedule === 'deepseek');
 
       return h('section', { className: 'dsx-rate', 'aria-label': 'DeepSeek rate clock' },
         h('div', { className: 'dsx-rate-head' },
@@ -672,7 +737,9 @@ window.__ModuleLoader__.load({
                 `${String(window.startHour).padStart(2, '0')}:00–${String(window.endHour).padStart(2, '0')}:00`
               )).join(' · ')
             ),
-            h('div', { className: 'dsx-rate-meta' }, 'DeepSeek bills Mon–Fri, China holidays excluded')
+            h('div', { className: 'dsx-rate-meta' }, peakProviders.length
+              ? `Billed by ${peakProviders.join(', ')}`
+              : 'Billed by providers on hourly rates')
           )
         ),
         total > 0
@@ -681,14 +748,16 @@ window.__ModuleLoader__.load({
               h('div', {
                 className: 'dsx-rate-split-bar',
                 role: 'img',
-                'aria-label': `Peak ${fmtPct(peakShare)} of spend, off-peak ${fmtPct(100 - peakShare)}.`,
+                'aria-label': `Peak ${fmtPct(peakShare)} of spend, off-peak ${fmtPct(100 - peakShare - flatShare)}, flat ${fmtPct(flatShare)}.`,
               },
                 h('div', { className: 'dsx-rate-split-seg peak', style: { width: `${peakShare}%` } }),
-                h('div', { className: 'dsx-rate-split-seg off', style: { width: `${100 - peakShare}%` } })
+                h('div', { className: 'dsx-rate-split-seg off', style: { width: `${100 - peakShare - flatShare}%` } }),
+                flatShare > 0 ? h('div', { className: 'dsx-rate-split-seg flat', style: { width: `${flatShare}%` } }) : null
               ),
               h('div', { className: 'dsx-rate-split-legend' },
                 h('span', {}, 'Peak ', h('b', {}, fmtUsd(spend.peakUsd)), ` · ${fmtPct(peakShare)} of spend`),
                 h('span', {}, 'Off-peak ', h('b', {}, fmtUsd(spend.offPeakUsd))),
+                flatUsd > 0 ? h('span', {}, 'Flat ', h('b', {}, fmtUsd(flatUsd))) : null,
                 h('span', {}, 'Peak premium ', h('b', {}, fmtUsd(spend.peakPremiumUsd)), ' vs off-peak rates')
               )
             )
@@ -715,8 +784,11 @@ window.__ModuleLoader__.load({
           ))
         ),
         h('p', { className: 'dsx-note' },
-          'DeepSeek bills peak rates at 01:00–04:00 and 06:00–10:00 UTC, Monday–Friday, excluding Chinese public holidays; every other hour is off-peak at half the peak rate. ',
+          'Peak rates run 01:00–04:00 and 06:00–10:00 UTC, Monday–Friday; every other hour is off-peak at half the peak rate. ',
           windowsText ? `In ${view.timeZone} that is ${windowsText}. ` : '',
+          honorsHolidays
+            ? 'Only DeepSeek\'s direct API bills Chinese public holidays as off-peak; Command Code keeps them on the weekday clock. '
+            : '',
           h('a', { href: 'https://api-docs.deepseek.com/quick_start/pricing', target: '_blank', rel: 'noreferrer' }, 'Source'),
           '.'
         )
@@ -845,26 +917,43 @@ window.__ModuleLoader__.load({
         : { sessionId, data: null, error: null, updatedAt: 0 };
     }
 
+    function fmtResets(at, now) {
+      const value = Number(at);
+      if (!Number.isFinite(value) || value <= 0) return '';
+      const delta = value - now;
+      if (delta <= 0) return 'resetting';
+      return `resets in ${fmtDuration(delta)}`;
+    }
+
+    /** A usable epoch millisecond value — `null` must not read as 1970. */
+    function hasTime(value) {
+      const n = Number(value);
+      return Number.isFinite(n) && n > 0;
+    }
+
     /**
-     * Ambient composer-dock chip: the current conversation's peak/off-peak rate
-     * badge plus its estimated spend, beside the shipped token readout. The badge
-     * is available as soon as the schedule loads; the cost waits for a priced call.
+     * Ambient composer-dock chip. A provider that publishes an account counter
+     * (Command Code) resolves to the plan's remaining credits, because that is
+     * what paces its calls; a provider billed on DeepSeek's hourly windows keeps
+     * the live peak/off-peak badge. Either way the conversation's own estimated
+     * spend rides beside it.
      */
     function SessionUsageChip({ sessionId }) {
       const state = useSessionCost(sessionId);
       const data = state.data;
       const schedule = data?.schedule;
+      const counter = data?.counter?.available ? data.counter : null;
       const [now, setNow] = useState(() => Date.now());
 
       useEffect(() => {
-        if (!schedule) return undefined;
+        if (!schedule && !counter) return undefined;
         let timer;
         // Wake exactly after the next window boundary (or every 30s) so the
         // badge flips within a second of the switch, not up to 30s late.
         const tick = () => {
           const current = Date.now();
           setNow(current);
-          const untilBoundary = scheduleView(schedule, current).next?.at;
+          const untilBoundary = schedule ? scheduleView(schedule, current).next?.at : undefined;
           const delay = untilBoundary === undefined
             ? 30000
             : Math.max(1000, Math.min(30000, untilBoundary - current + 1000));
@@ -872,52 +961,82 @@ window.__ModuleLoader__.load({
         };
         tick();
         return () => clearTimeout(timer);
-      }, [schedule]);
+      }, [schedule, counter ? counter.fetchedAt : 0]);
 
       if (!data) return null;
 
       const cost = data.usageCalls ? Number(data.cost?.totalUsd) || 0 : null;
       const view = schedule ? scheduleView(schedule, now) : null;
-      const next = view?.next;
       const tokens = data.tokens ?? {};
       const rate = data.rate ?? {};
+      const badge = data.badge ?? (view ? 'rate' : 'none');
       const multiplier = Number(data.pricing?.peakMultiplier) || 2;
-      const scheduleText = schedule
-        ? schedule.windowsUtc
-          .map((window) => `${String(window.startHour).padStart(2, '0')}:00–${String(window.endHour).padStart(2, '0')}:00`)
-          .join(' and ')
-        : '01:00–04:00 and 06:00–10:00';
 
-      if (!view && cost === null) return null;
+      const credits = counter?.credits ?? null;
+      const windows = counter?.windows ?? {};
+      const planName = counter?.plan?.name ?? 'Plan';
+      const fiveHour = windows.fiveHour;
+      const weekly = windows.weekly;
+      const cap = Number(credits?.monthlyCap) || 0;
+      const remaining = Number(credits?.totalRemaining) || 0;
+      const lowCredit = cap > 0 ? remaining / cap <= 0.15 : remaining <= 0;
+      const warning = lowCredit || Boolean(fiveHour?.exceeded) || Boolean(weekly?.exceeded);
 
       const tip = [];
+      if (badge === 'counter' && counter) {
+        tip.push(`${planName} plan · ${fmtUsd(remaining, 2)} of ${fmtUsd(cap, 2)} credits left this cycle.`);
+        if (fiveHour) {
+          tip.push(`Last 5 hours: ${fmtUsd(fiveHour.used, 2)} of ${fmtUsd(fiveHour.cap, 2)} (${fmtPct(fiveHour.pct)})${fiveHour.resetAt ? ` · ${fmtResets(fiveHour.resetAt, now)}` : ''}.`);
+        }
+        if (weekly) {
+          tip.push(`This week: ${fmtUsd(weekly.used, 2)} of ${fmtUsd(weekly.cap, 2)} (${fmtPct(weekly.pct)})${weekly.resetAt ? ` · ${fmtResets(weekly.resetAt, now)}` : ''}.`);
+        }
+        if (counter.plan?.periodEnd) {
+          tip.push(`Cycle renews ${dateTimeFmt.format(new Date(counter.plan.periodEnd))}.`);
+        }
+        tip.push('Counted by Command Code for this account.');
+      }
       if (view) {
         tip.push(view.peak
           ? `Peak pricing now — ${multiplier}× the off-peak list rate.`
           : 'Off-peak pricing now — the list rate.');
-        if (next) {
-          tip.push(`${next.peak ? 'Peak' : 'Off-peak'} in ${fmtDuration(next.at - now)} (${dayAt(next.at, view.timeZone)}).`);
+        if (view.next) {
+          tip.push(`${view.next.peak ? 'Peak' : 'Off-peak'} in ${fmtDuration(view.next.at - now)} (${dayAt(view.next.at, view.timeZone)}).`);
         }
         tip.push(view.todayText
           ? `Peak windows today: ${view.todayText} · ${view.timeZone}.`
           : `${view.offReason}.`);
-        tip.push(`DeepSeek bills peak rates ${scheduleText} UTC, Mon–Fri; China holidays are off-peak.`);
       }
       if (cost !== null) {
-        const mode = rate.mode === 'peak' ? 'peak' : rate.mode === 'mixed' ? 'peak + off-peak' : 'off-peak';
-        tip.push(`Session cost ${fmtUsd(cost)} (${mode} rates).`);
-        tip.push(`${fmtInt(data.usageCalls)} model calls · ${fmtTokens(tokens.total)} tokens; peak ${fmtUsd(rate.peakUsd)} · off-peak ${fmtUsd(rate.offPeakUsd)}.`);
-        tip.push('Estimated from DeepSeek list prices; token-only.');
+        tip.push(`Session cost ${fmtUsd(cost)} (${rateLabel(rate.mode)}).`);
+        const split = rate.mode === 'mixed' || rate.mode === 'flat'
+          ? ''
+          : `; peak ${fmtUsd(rate.peakUsd)} · off-peak ${fmtUsd(rate.offPeakUsd)}`;
+        tip.push(`${fmtInt(data.usageCalls)} model calls · ${fmtTokens(tokens.total)} tokens${split}.`);
+        tip.push('Estimated from each provider\'s list prices; token-only.');
       }
 
-      return h('span', { className: 'dsx-usage', title: tip.join('\n') },
-        h('style', {}, USAGE_CSS),
-        view
+      const badgeNode = badge === 'counter' && counter
+        ? h('span', {
+          className: `dsx-credit-chip${warning ? ' is-warn' : ''}`,
+          'aria-label': `${planName} plan, ${fmtUsd(remaining, 2)} credits left`,
+        },
+          h('span', { className: 'dsx-credit-plan' }, planName),
+          h('b', {}, fmtUsd(remaining, 2)),
+          ' left'
+        )
+        : badge === 'rate' && view
           ? h('span', {
             className: `dsx-rate-badge ${view.peak ? 'is-peak' : 'is-off'}`,
             'aria-label': view.peak ? 'Peak pricing now' : 'Off-peak pricing now',
           }, view.peak ? 'Peak' : 'Off-peak')
-          : null,
+          : null;
+
+      if (!badgeNode && cost === null) return null;
+
+      return h('span', { className: 'dsx-usage', title: tip.join('\n') },
+        h('style', {}, USAGE_CSS),
+        badgeNode,
         cost !== null
           ? h('span', {
             className: `dsx-session-cost${state.error ? ' is-stale' : ''}`,
@@ -1163,7 +1282,7 @@ window.__ModuleLoader__.load({
     function TimelineSection({ data, mode, setMode }) {
       const { timeline, totals, pricing } = data;
       const buckets = timeline.buckets ?? [];
-      return h('section', { className: 'dsx-panel dsx-timeline' },
+      return h('section', { className: 'dsx-panel dsx-timeline', 'aria-label': 'Token timeline' },
         h('div', { className: 'dsx-sec-head' },
           h('div', {},
             h('h2', { className: 'dsx-sec-title' }, 'Token timeline'),
@@ -1187,7 +1306,7 @@ window.__ModuleLoader__.load({
     function BudgetSection({ budget, draft, setDraft, commitBudget, totals }) {
       const used = Math.max(0, Number(budget.usedPct) || 0);
       const over = used > 100;
-      return h('section', { className: 'dsx-panel dsx-budget' },
+      return h('section', { className: 'dsx-panel dsx-budget', 'aria-label': 'Budget' },
         h('div', { className: 'dsx-sec-head' },
           h('div', {},
             h('h2', { className: 'dsx-sec-title' }, 'Budget'),
@@ -1243,7 +1362,165 @@ window.__ModuleLoader__.load({
       );
     }
 
-    function CostSection({ totals, pricing }) {
+    /**
+     * One row per provider that served a response, each on its own rate card.
+     * This is the multi-provider view: the same ledger, split by who billed it.
+     */
+    function ProvidersSection({ providers, pricing }) {
+      const rows = providers ?? [];
+      return h('section', { className: 'dsx-panel dsx-providers', 'aria-label': 'Providers' },
+        h('div', { className: 'dsx-sec-head' },
+          h('div', {},
+            h('h2', { className: 'dsx-sec-title' }, 'Providers'),
+            h('p', { className: 'dsx-sec-meta' },
+              `${fmtInt(rows.length)} provider${rows.length === 1 ? '' : 's'} · each priced from its own rate card`)
+          ),
+          h('span', { className: 'dsx-live' }, rateLabel(pricing?.rateMode))
+        ),
+        rows.length === 0
+          ? h('div', { className: 'dsx-empty' }, 'No provider usage recorded yet.')
+          : h('div', { className: 'dsx-prov-list' }, rows.map((row) => h('div', {
+            className: 'dsx-prov-row',
+            key: row.provider,
+          },
+            h('div', { className: 'dsx-prov-head' },
+              h('div', { className: 'dsx-prov-name' },
+                h('b', { title: row.provider }, row.displayName),
+                h('span', {
+                  className: `dsx-prov-tag${row.schedule === 'deepseek' || row.schedule === 'deepseek-weekday' ? ' is-peak' : ' is-flat'}`,
+                }, scheduleLabel(row.schedule))
+              ),
+              h('div', { className: 'dsx-prov-cost' },
+                fmtUsd(row.cost.totalUsd),
+                h('span', {}, `${fmtPct(row.sharePct)} of spend`)
+              )
+            ),
+            h('div', { className: 'dsx-prov-meta' },
+              `${fmtInt(row.calls)} calls · ${fmtTokens(row.tokens.total)} tokens · ${fmtPct(row.cacheHitRate)} cache hit · ${fmtUsd(row.blendedPerMillionUsd, 4)}/1M`
+            ),
+            h('div', {
+              className: 'dsx-prov-track',
+              role: 'img',
+              'aria-label': `${row.displayName} holds ${fmtPct(row.sharePct)} of estimated spend.`,
+            },
+              h('div', { className: 'dsx-prov-fill', style: { width: `${clampPct(row.sharePct)}%` } })
+            ),
+            h('div', { className: 'dsx-prov-models' },
+              (row.models ?? []).map((model) => h('span', {
+                className: 'dsx-chip',
+                key: model.model,
+                title: `${model.calls} calls · ${fmtUsd(model.cost.totalUsd, 4)}`,
+              }, `${modelLabel(model.model)} · ${fmtTokens(model.tokens.total)}`))
+            )
+          )))
+      );
+    }
+
+    /**
+     * The provider's own account counter. Command Code paces calls by credits
+     * across three rolling windows, so that — not a local estimate — is the
+     * number that decides whether the next request goes through.
+     */
+    function PlanSection({ counter, period }) {
+      if (!counter) return null;
+      const available = Boolean(counter.available);
+      const status = counter.status ?? 'pending';
+      const now = Date.now();
+
+      if (!available) {
+        const reason = counter.reason === 'no-credentials'
+          ? 'No CommandCode API key is stored, so the plan counter cannot be read. The key the provider row already uses is enough.'
+          : status === 'error' || status === 'stale'
+            ? `The billing API could not be read${counter.error ? `: ${counter.error}` : '.'}`
+            : status === 'disabled'
+              ? 'The live plan counter is disabled in this plugin\'s config.'
+              : 'Reading the plan counter…';
+        return h('section', { className: 'dsx-panel dsx-plan', 'aria-label': 'Command Code plan' },
+          h('div', { className: 'dsx-sec-head' }, h('div', {},
+            h('h2', { className: 'dsx-sec-title' }, 'Command Code plan'),
+            h('p', { className: 'dsx-sec-meta' }, 'Live credit counter')
+          )),
+          h('p', { className: 'dsx-note' }, reason)
+        );
+      }
+
+      const credits = counter.credits ?? {};
+      const windows = counter.windows ?? {};
+      const plan = counter.plan ?? {};
+      const fiveHour = windows.fiveHour;
+      const weekly = windows.weekly;
+      const monthly = windows.monthly ?? {};
+      const ccPeriod = (period?.providers ?? []).find((row) => row.provider === 'commandcode');
+
+      const windowRow = (label, info, note) => (info
+        ? h('div', { className: 'dsx-plan-window', key: label },
+          h('div', { className: 'dsx-plan-window-head' },
+            h('div', {}, label),
+            h('div', {},
+              h('b', {}, fmtUsd(info.used, 2)),
+              h('span', {}, ` / ${fmtUsd(info.cap, 2)} · ${fmtPct(info.pct)}`)
+            )
+          ),
+          h('div', {
+            className: 'dsx-meter',
+            role: 'progressbar',
+            'aria-valuemin': 0,
+            'aria-valuemax': 100,
+            'aria-valuenow': Math.round(Math.min(100, info.pct)),
+            'aria-valuetext': `${fmtPct(info.pct)} of ${label.toLowerCase()} allowance used`,
+          },
+            h('div', {
+              className: `dsx-meter-fill${info.exceeded ? ' is-over' : ''}`,
+              style: { width: `${Math.min(100, info.pct)}%` },
+            })
+          ),
+          h('div', { className: 'dsx-plan-window-foot' }, note)
+        )
+        : null);
+
+      return h('section', { className: 'dsx-panel dsx-plan', 'aria-label': 'Command Code plan' },
+        h('div', { className: 'dsx-sec-head' },
+          h('div', {},
+            h('h2', { className: 'dsx-sec-title' }, 'Command Code plan'),
+            h('p', { className: 'dsx-sec-meta' },
+              [
+                plan.name ?? 'Plan',
+                plan.status,
+                hasTime(plan.periodEnd) ? `renews ${dateFmt.format(new Date(plan.periodEnd))}` : null,
+              ].filter(Boolean).join(' · ')
+            )
+          ),
+          h('span', { className: `dsx-prov-tag${status === 'stale' ? '' : ' is-flat'}` }, status === 'stale' ? 'stale' : 'live')
+        ),
+        h('div', { className: 'dsx-plan-top' },
+          h('div', {},
+            h('div', { className: 'dsx-plan-balance' }, fmtUsd(credits.totalRemaining, 2)),
+            h('div', { className: 'dsx-plan-balance-note' },
+              `credits left of ${fmtUsd(credits.monthlyCap, 2)} this cycle`
+            )
+          ),
+          h('div', { className: 'dsx-prov-cost' },
+            fmtPct(monthly.pct ?? 0),
+            h('span', {}, 'cycle used')
+          )
+        ),
+        h('div', { className: 'dsx-plan-windows' },
+          windowRow('Last 5 hours', fiveHour, fiveHour?.resetAt ? fmtResets(fiveHour.resetAt, now) : 'rolling window'),
+          windowRow('This week', weekly, weekly?.resetAt ? fmtResets(weekly.resetAt, now) : 'rolling window'),
+          windowRow('This cycle', monthly, hasTime(plan.periodEnd)
+            ? `renews ${dateFmt.format(new Date(plan.periodEnd))}`
+            : 'billing cycle')
+        ),
+        h('p', { className: 'dsx-note' },
+          `Counted by Command Code for this account${counter.account?.userName ? ` (${counter.account.userName})` : ''}. `,
+          ccPeriod && ccPeriod.calls > 0
+            ? `Local ledger for this cycle: ${fmtInt(ccPeriod.calls)} calls · ${fmtTokens(ccPeriod.tokens)} tokens · ${fmtUsd(ccPeriod.costUsd)} estimated. The plugin prices those tokens itself, so that estimate can drift from the provider's own tally.`
+            : 'No Command Code calls recorded on this machine for this billing cycle.'
+        )
+      );
+    }
+
+    function CostSection({ totals, pricing, providers }) {
       const cost = totals.cost;
       const windowsText = pricing.schedule ? upcomingWindowText(pricing.schedule, Date.now()) : null;
       const rows = [
@@ -1252,7 +1529,7 @@ window.__ModuleLoader__.load({
         { key: 'in', label: 'Input (cache miss)', value: cost.inputUsd, tokens: totals.tokens.input + totals.tokens.cacheWrite },
       ];
       const total = Math.max(0.0000001, cost.totalUsd);
-      return h('section', { className: 'dsx-panel dsx-cost' },
+      return h('section', { className: 'dsx-panel dsx-cost', 'aria-label': 'Cost composition' },
         h('div', { className: 'dsx-sec-head' },
           h('div', {},
             h('h2', { className: 'dsx-sec-title' }, 'Cost composition'),
@@ -1275,9 +1552,14 @@ window.__ModuleLoader__.load({
             h('div', { className: `dsx-cost-fill ${row.key}`, style: { width: `${Math.max(0, Math.min(100, row.value / total * 100))}%` } })
           )
         ))),
+        (providers ?? []).length > 1
+          ? h('div', { className: 'dsx-prov-models', style: { marginTop: 13 } },
+            providers.map((row) => h('span', { className: 'dsx-chip', key: row.provider },
+              `${row.displayName} ${fmtUsd(row.cost.totalUsd, 4)}`)))
+          : null,
         h('p', { className: 'dsx-note' },
-          `Estimated with DeepSeek list rates for ${pricing.models.length ? pricing.models.map(modelLabel).join(', ') : 'the active model'}. `,
-          'Peak hours are 01:00–04:00 and 06:00–10:00 UTC, Monday–Friday, excluding Chinese public holidays; peak rates are double. ',
+          `Estimated with each provider's own list rates for ${pricing.models.length ? pricing.models.map(modelLabel).join(', ') : 'the active model'}. `,
+          'Hourly peak rates are 01:00–04:00 and 06:00–10:00 UTC, Monday–Friday, and double the off-peak rate; only DeepSeek\'s direct API also treats Chinese public holidays as off-peak. ',
           windowsText ? `In ${pricing.schedule.timeZone} that is ${windowsText}. ` : '',
           h('a', { href: 'https://api-docs.deepseek.com/quick_start/pricing', target: '_blank', rel: 'noreferrer' }, 'List pricing'),
           '. Excludes search, fetch, and taxes.'
@@ -1328,7 +1610,7 @@ window.__ModuleLoader__.load({
     }
 
     function CpuSection({ cpu }) {
-      return h('section', { className: 'dsx-panel dsx-cpu' },
+      return h('section', { className: 'dsx-panel dsx-cpu', 'aria-label': 'CPU activity' },
         h('div', { className: 'dsx-sec-head' },
           h('div', {},
             h('h2', { className: 'dsx-sec-title' }, 'CPU activity'),
@@ -1438,7 +1720,11 @@ window.__ModuleLoader__.load({
             ),
             h('div', { className: 'dsx-model-line' },
               conversation.models.length
-                ? conversation.models.map((entry) => h('span', { className: 'dsx-chip', key: `${entry.provider}/${entry.model}` }, modelLabel(entry.model)))
+                ? conversation.models.map((entry) => h('span', {
+                  className: 'dsx-chip',
+                  key: `${entry.provider}/${entry.model}`,
+                  title: `${entry.provider} · ${entry.model}`,
+                }, `${entry.providerName ?? entry.provider} · ${modelLabel(entry.model)}`))
                 : h('span', { className: 'dsx-chip' }, 'No model usage')
             )
           )
@@ -1447,7 +1733,7 @@ window.__ModuleLoader__.load({
     }
 
     function ConversationsSection({ conversations, now, bucketMs, expanded, setExpanded }) {
-      return h('section', { className: 'dsx-panel dsx-conv' },
+      return h('section', { className: 'dsx-panel dsx-conv', 'aria-label': 'Conversations' },
         h('div', { className: 'dsx-conv-head' },
           h('div', {},
             h('h2', { className: 'dsx-sec-title' }, 'Conversations'),
@@ -1571,7 +1857,12 @@ window.__ModuleLoader__.load({
           : h(ErrorState, { message: state.error, onRetry: refresh });
       }
 
-      const { totals, timeline, budget: budgetData, pricing, conversations, cpu } = data;
+      const {
+        totals, timeline, budget: budgetData, pricing, conversations, cpu,
+        providers: providerRows = [], counter: planCounter = null, period,
+      } = data;
+      const ccInUse = providerRows.some((row) => row.provider === 'commandcode');
+      const showPlan = Boolean(ccInUse || planCounter?.available);
 
       return h('div', { className: 'dsx-page' },
         h('style', {}, CSS),
@@ -1580,7 +1871,7 @@ window.__ModuleLoader__.load({
             h('div', {},
               h('h1', { className: 'dsx-title' }, 'Usage ledger'),
               h('p', { className: 'dsx-sub' },
-                `${fmtInt(totals.conversations)} conversations · ${fmtInt(totals.messages)} messages · ${formatSpan(timeline.from, timeline.to)}`
+                `${fmtInt(totals.conversations)} conversations · ${fmtInt(totals.messages)} messages · ${fmtInt(providerRows.length)} provider${providerRows.length === 1 ? '' : 's'} · ${formatSpan(timeline.from, timeline.to)}`
               )
             ),
             h('div', { className: 'dsx-actions' },
@@ -1613,8 +1904,15 @@ window.__ModuleLoader__.load({
             })
           ),
           h('div', { className: 'dsx-grid-main', style: { marginTop: 30 } },
+            h(ProvidersSection, { providers: providerRows, pricing }),
+            h(CostSection, { totals, pricing, providers: providerRows })
+          ),
+          h('div', {
+            className: 'dsx-grid-main',
+            style: showPlan ? { marginTop: 30 } : { marginTop: 30, gridTemplateColumns: 'minmax(0,1fr)' },
+          },
             h(CpuSection, { cpu }),
-            h(CostSection, { totals, pricing })
+            showPlan ? h(PlanSection, { counter: planCounter, period }) : null
           ),
           h(ConversationsSection, {
             conversations,

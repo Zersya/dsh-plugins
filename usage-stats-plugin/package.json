@@ -1,9 +1,9 @@
 {
   "name": "@local/dsh-usage-stats",
-  "version": "1.3.0",
+  "version": "1.5.0",
   "private": true,
   "type": "module",
-  "description": "Live token, cost, budget, conversation, and CPU statistics for the Harness, with a DeepSeek peak/off-peak rate clock and a composer chip showing the session's peak/off-peak rate badge and estimated cost.",
+  "description": "Live token, cost, budget, conversation, and CPU statistics for the Harness, priced per provider (DeepSeek direct and Command Code, extensible), with a DeepSeek peak/off-peak rate clock, a Command Code credit counter, and a composer chip that shows the live plan balance instead of a rate badge for counter-based providers.",
   "license": "MIT",
   "exports": {
     ".": "./index.js",

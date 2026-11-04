@@ -4,3 +4,11 @@
       name: '@local/dsh-usage-stats'
       config:
         budgetUsd: 5
+        # Live account counter for providers that publish one. It reads the same
+        # credential the provider row already uses, so no second key is needed.
+        # Set `enabled: false` to keep the plugin fully offline.
+        commandCode:
+          enabled: true
+          apiBase: https://api.commandcode.ai
+          apiKeyEnv: COMMANDCODE_API_KEY
+          refreshSeconds: 60

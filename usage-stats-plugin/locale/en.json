@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Usage Statistics",
-    "description": "Live token, cost, budget, conversation, and CPU telemetry for the Harness, with DeepSeek peak and off-peak rate windows in your timezone and a composer chip showing the session's peak/off-peak rate badge and estimated cost."
+    "description": "Live token, cost, budget, conversation, and CPU telemetry for the Harness, priced per provider (DeepSeek direct and Command Code, extensible), with a DeepSeek peak/off-peak rate clock, a Command Code credit counter, and a composer chip that shows the live plan balance instead of a rate badge for counter-based providers."
   }
 }
