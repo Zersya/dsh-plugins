@@ -7,6 +7,8 @@ window.__ModuleLoader__.load({
 
     const PANEL_ID = 'usage-stats';
     const API = '/plugins/dsh-stats/overview';
+    const SESSION_API = '/plugins/dsh-stats/session';
+    const SESSION_POLL_MS = 10000;
     const BUDGET_KEY = 'dsh.usage-stats.budgetUsd';
     const POLL_MS = 6000;
 
@@ -299,6 +301,17 @@ window.__ModuleLoader__.load({
         .dsx-icon-btn.is-busy svg { animation:none; }
         .dsx-comp-seg, .dsx-meter-fill, .dsx-cell-chev, .dsx-row { transition:none; }
       }
+    `;
+
+    const COST_CSS = `
+      .dsx-cost {
+        display:inline-flex; align-items:baseline; gap:4px;
+        color:var(--dsw-alias-label-secondary); font-size:11px; line-height:1.4;
+        white-space:nowrap; font-variant-numeric:tabular-nums;
+        cursor:default; user-select:none;
+      }
+      .dsx-cost-value { color:var(--dsw-alias-label-primary); opacity:.82; }
+      .dsx-cost.is-stale { opacity:.55; }
     `;
 
     const integer = new Intl.NumberFormat('en-US');
@@ -769,6 +782,91 @@ window.__ModuleLoader__.load({
 
       const refresh = useCallback(() => setTick((value) => value + 1), []);
       return [state, refresh];
+    }
+
+    /**
+     * One conversation's live spend, polled on its own lightweight route so the
+     * composer chip never triggers a whole-ledger scan.
+     */
+    function useSessionCost(sessionId) {
+      const [state, setState] = useState({ sessionId: null, data: null, error: null, updatedAt: 0 });
+
+      useEffect(() => {
+        if (!sessionId) return undefined;
+        let active = true;
+        let timer;
+        const controller = new AbortController();
+        // A switch must never render the previous conversation's spend.
+        setState({ sessionId, data: null, error: null, updatedAt: 0 });
+
+        const run = async () => {
+          if (!active) return;
+          try {
+            const response = await fetch(`${SESSION_API}?session=${encodeURIComponent(sessionId)}`, {
+              cache: 'no-store',
+              credentials: 'same-origin',
+              signal: controller.signal,
+            });
+            if (!response.ok) {
+              const text = await response.text();
+              throw new Error(text || `HTTP ${response.status}`);
+            }
+            const data = await response.json();
+            if (!active) return;
+            setState({ sessionId, data, error: null, updatedAt: Number(data.generatedAt) || Date.now() });
+          } catch (error) {
+            if (!active || error?.name === 'AbortError') return;
+            setState((current) => (current.sessionId === sessionId
+              ? { ...current, error: String(error?.message || error) }
+              : current));
+          } finally {
+            if (active) timer = setTimeout(run, SESSION_POLL_MS);
+          }
+        };
+
+        run();
+        return () => {
+          active = false;
+          controller.abort();
+          clearTimeout(timer);
+        };
+      }, [sessionId]);
+
+      // Ignore the render between a sessionId prop change and the reset above.
+      return state.sessionId === sessionId
+        ? state
+        : { sessionId, data: null, error: null, updatedAt: 0 };
+    }
+
+    /**
+     * Ambient composer-dock chip: the current conversation's estimated spend
+     * beside the token count. Hidden until the conversation has a priced call.
+     */
+    function SessionCostChip({ sessionId }) {
+      const state = useSessionCost(sessionId);
+      const data = state.data;
+
+      if (!data || !data.usageCalls) return null;
+
+      const cost = Number(data.cost?.totalUsd) || 0;
+      const tokens = data.tokens ?? {};
+      const rate = data.rate ?? {};
+      const mode = rate.mode === 'peak' ? 'peak' : rate.mode === 'mixed' ? 'peak + off-peak' : 'off-peak';
+      const tip = [
+        `Session cost ${fmtUsd(cost)} (${mode} rates)`,
+        `${fmtInt(data.usageCalls)} model calls · ${fmtTokens(tokens.total)} tokens`,
+        `Peak ${fmtUsd(rate.peakUsd)} · off-peak ${fmtUsd(rate.offPeakUsd)}`,
+        'Estimated from DeepSeek list prices; token-only.',
+      ].join('\n');
+
+      return h('span', {
+        className: `dsx-cost${state.error ? ' is-stale' : ''}`,
+        title: tip,
+        'aria-label': `Session cost ${fmtUsd(cost)}`,
+      },
+        h('style', {}, COST_CSS),
+        h('span', { className: 'dsx-cost-value' }, `≈ ${fmtUsd(cost)}`)
+      );
     }
 
     function RefreshIcon() {
@@ -1485,6 +1583,13 @@ window.__ModuleLoader__.load({
           order: 20,
           label: 'Usage',
         }, StatsIcon));
+        // Current conversation's spend, beside the composer's token readout.
+        ctx.slots.inject('conversation.composer.dock', () => ctx.slots.register({
+          name: 'conversation.composer.dock',
+          id: 'usage-cost',
+          order: 2,
+          label: 'Session cost',
+        }, SessionCostChip));
       },
     };
   },

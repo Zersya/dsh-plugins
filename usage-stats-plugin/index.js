@@ -744,6 +744,51 @@ function aggregate(summaries, budgetUsd, timeZone) {
 
 /* -------------------------------------------------------------------- route */
 
+/**
+ * One conversation's estimated spend and token split, for the composer cost
+ * chip. Kept apart from `aggregate` so polling one session never scans the
+ * whole ledger.
+ */
+function sessionPayload(summary) {
+  const rateMode = summary.peakEvents === 0
+    ? 'off-peak'
+    : summary.offPeakEvents === 0
+      ? 'peak'
+      : 'mixed';
+  const peakPremiumUsd = summary.peakCostUsd - summary.peakCostUsd / PEAK_MULTIPLIER;
+  return {
+    version: 1,
+    generatedAt: Date.now(),
+    id: summary.id,
+    title: summary.title,
+    live: Boolean(summary.live),
+    usageCalls: summary.usageCalls,
+    turns: summary.turns,
+    steps: summary.steps,
+    userMessages: summary.userMessages,
+    assistantMessages: summary.assistantMessages,
+    toolCalls: summary.toolCalls,
+    activeMs: summary.activeMs,
+    tokens: summary.tokens,
+    cost: summary.cost,
+    rate: {
+      mode: rateMode,
+      peakEvents: summary.peakEvents,
+      offPeakEvents: summary.offPeakEvents,
+      peakUsd: summary.peakCostUsd,
+      offPeakUsd: summary.offPeakCostUsd,
+      peakTokens: summary.peakTokens,
+      offPeakTokens: summary.offPeakTokens,
+      peakPremiumUsd,
+    },
+    pricing: {
+      peakMultiplier: PEAK_MULTIPLIER,
+      fallbackModel: FALLBACK_MODEL,
+      models: (summary.models ?? []).map((entry) => entry.model).filter(Boolean),
+    },
+  };
+}
+
 function sendJson(res, status, value) {
   const body = JSON.stringify(value);
   res.writeHead(status, {
@@ -778,68 +823,83 @@ export function apply(ctx, config) {
     };
   });
 
-  ctx.effect(() => {
-    const liveSessions = () => {
-      try {
-        const agents = ctx.get('agents');
-        if (agents?.list) {
-          return new Set(agents.list().map((agent) => agent.id ?? agent.session?.id).filter(Boolean));
-        }
-        const sessions = ctx.get('sessions');
-        return new Set((sessions?.list?.() ?? []).map((session) => session.id));
-      } catch {
-        return new Set();
+  const liveSessionIds = () => {
+    try {
+      const agents = ctx.get('agents');
+      if (agents?.list) {
+        return new Set(agents.list().map((agent) => agent.id ?? agent.session?.id).filter(Boolean));
       }
-    };
+      const sessions = ctx.get('sessions');
+      return new Set((sessions?.list?.() ?? []).map((session) => session.id));
+    } catch {
+      return new Set();
+    }
+  };
 
-    return ctx.webServer.register({
-      kind: 'prefix',
-      path: ROUTE_PREFIX,
-      async handler(req, res) {
-        const url = new URL(req.url ?? '/', `http://${req.headers.host ?? '127.0.0.1'}`);
-        if (url.pathname !== `${ROUTE_PREFIX}/overview`) {
-          sendJson(res, 404, { error: 'not found' });
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'prefix',
+    path: ROUTE_PREFIX,
+    async handler(req, res) {
+      const url = new URL(req.url ?? '/', `http://${req.headers.host ?? '127.0.0.1'}`);
+
+      if (url.pathname === `${ROUTE_PREFIX}/session`) {
+        const sessionId = cleanText(url.searchParams.get('session'));
+        if (!sessionId) {
+          sendJson(res, 400, { error: 'bad-session', message: 'A session id is required.' });
           return;
         }
-
-        const requested = Number(url.searchParams.get('budgetUsd'));
-        const budgetUsd = Number.isFinite(requested) && requested > 0
-          ? Math.min(requested, MAX_BUDGET_USD)
-          : defaultBudget;
-
         try {
-          const snapshots = await ctx.sessionPersistence.list();
-          const live = liveSessions();
-          const readable = snapshots
-            .filter((snapshot) => snapshot?.header?.id)
-            .sort((a, b) => b.header.createdAt - a.header.createdAt);
-
-          const summaries = [];
-          const concurrency = 3;
-          let cursor = 0;
-          const worker = async () => {
-            while (cursor < readable.length) {
-              const index = cursor;
-              cursor += 1;
-              const snapshot = readable[index];
-              summaries.push(await loadSummary(ctx, snapshot, live.has(snapshot.header.id)));
-            }
-          };
-          await Promise.all(Array.from({ length: Math.min(concurrency, readable.length) }, worker));
-
-          const currentIds = new Set(readable.map((snapshot) => snapshot.header.id));
-          for (const id of summaryCache.keys()) {
-            if (!currentIds.has(id)) summaryCache.delete(id);
-          }
-
-          const conversations = summaries.filter((summary) => (
-            summary.userMessages + summary.assistantMessages > 0
-          ));
-          sendJson(res, 200, aggregate(conversations, budgetUsd, timeZone));
+          const log = await ctx.sessionQuery.readSession(sessionId);
+          const summary = summarizeLog(log, null, liveSessionIds().has(sessionId));
+          sendJson(res, 200, sessionPayload(summary));
         } catch (error) {
-          sendJson(res, 500, { error: String(error?.message ?? error) });
+          sendJson(res, 404, { error: 'session-not-found', message: String(error?.message ?? error) });
         }
-      },
-    });
-  });
+        return;
+      }
+
+      if (url.pathname !== `${ROUTE_PREFIX}/overview`) {
+        sendJson(res, 404, { error: 'not found' });
+        return;
+      }
+
+      const requested = Number(url.searchParams.get('budgetUsd'));
+      const budgetUsd = Number.isFinite(requested) && requested > 0
+        ? Math.min(requested, MAX_BUDGET_USD)
+        : defaultBudget;
+
+      try {
+        const snapshots = await ctx.sessionPersistence.list();
+        const live = liveSessionIds();
+        const readable = snapshots
+          .filter((snapshot) => snapshot?.header?.id)
+          .sort((a, b) => b.header.createdAt - a.header.createdAt);
+
+        const summaries = [];
+        const concurrency = 3;
+        let cursor = 0;
+        const worker = async () => {
+          while (cursor < readable.length) {
+            const index = cursor;
+            cursor += 1;
+            const snapshot = readable[index];
+            summaries.push(await loadSummary(ctx, snapshot, live.has(snapshot.header.id)));
+          }
+        };
+        await Promise.all(Array.from({ length: Math.min(concurrency, readable.length) }, worker));
+
+        const currentIds = new Set(readable.map((snapshot) => snapshot.header.id));
+        for (const id of summaryCache.keys()) {
+          if (!currentIds.has(id)) summaryCache.delete(id);
+        }
+
+        const conversations = summaries.filter((summary) => (
+          summary.userMessages + summary.assistantMessages > 0
+        ));
+        sendJson(res, 200, aggregate(conversations, budgetUsd, timeZone));
+      } catch (error) {
+        sendJson(res, 500, { error: String(error?.message ?? error) });
+      }
+    },
+  }));
 }

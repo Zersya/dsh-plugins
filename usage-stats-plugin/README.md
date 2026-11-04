@@ -11,6 +11,11 @@ page.
 - **Ledger.** Total tokens, conversation count, message and turn counts, estimated
   spend, budget used, and total active time. A composition bar splits output /
   input (cache miss) / cache read, with the cache hit rate underneath.
+- **Session cost chip.** The composer dock shows the current conversation's
+  estimated spend (`≈ $0.84`) beside the token readout, updated every 10s. Hover
+  for the call count, token total, peak/off-peak split, and the estimate note; the
+  chip is hidden until the conversation has a priced call. It follows the session
+  you switch to, so every conversation carries its own cost.
 - **Rate clock.** A live peak/off-peak strip: local time and zone, a **Peak now** /
   **Off-peak now** chip, a countdown to the next switch, today's peak windows in
   your timezone, spend split by rate with the peak premium, and a seven-day strip
@@ -45,6 +50,12 @@ page.
   reflects in the usage coverage figure.
 - CPU is sampled from `os.cpus()` deltas and `process.cpuUsage()` on a 2s
   interval, so the history starts when the plugin loads.
+- A second prefix route, `/plugins/dsh-stats/session?session=<id>`, folds one
+  conversation for the composer chip and returns its estimated spend, token
+  split, and peak/off-peak breakdown. The chip is mounted into the
+  `conversation.composer.dock` slot next to the shipped token readout, polls every
+  10s, keeps the last good value, and is hidden until the conversation has a
+  priced call.
 - The Client half polls the route every 6s, keeps the last good payload, and shows
   a stale banner instead of dropping the page when a refresh fails. One route
   feeds every card, so the numbers on screen are always from the same snapshot.
