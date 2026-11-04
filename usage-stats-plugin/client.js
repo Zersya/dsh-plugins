@@ -303,15 +303,22 @@ window.__ModuleLoader__.load({
       }
     `;
 
-    const COST_CSS = `
-      .dsx-cost {
-        display:inline-flex; align-items:baseline; gap:4px;
+    const USAGE_CSS = `
+      .dsx-usage {
+        display:inline-flex; align-items:center; gap:7px;
         color:var(--dsw-alias-label-secondary); font-size:11px; line-height:1.4;
         white-space:nowrap; font-variant-numeric:tabular-nums;
         cursor:default; user-select:none;
       }
-      .dsx-cost-value { color:var(--dsw-alias-label-primary); opacity:.82; }
-      .dsx-cost.is-stale { opacity:.55; }
+      .dsx-rate-badge {
+        display:inline-flex; align-items:center; padding:1px 6px;
+        border:1px solid currentColor; border-radius:999px;
+        font-size:9px; font-weight:600; letter-spacing:.04em; text-transform:uppercase;
+      }
+      .dsx-rate-badge.is-peak { color:var(--dsw-alias-state-warn-primary); }
+      .dsx-rate-badge.is-off { color:var(--dsw-alias-state-success-primary); }
+      .dsx-session-cost { color:var(--dsw-alias-label-primary); opacity:.82; }
+      .dsx-session-cost.is-stale { opacity:.5; }
     `;
 
     const integer = new Intl.NumberFormat('en-US');
@@ -839,33 +846,84 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * Ambient composer-dock chip: the current conversation's estimated spend
-     * beside the token count. Hidden until the conversation has a priced call.
+     * Ambient composer-dock chip: the current conversation's peak/off-peak rate
+     * badge plus its estimated spend, beside the shipped token readout. The badge
+     * is available as soon as the schedule loads; the cost waits for a priced call.
      */
-    function SessionCostChip({ sessionId }) {
+    function SessionUsageChip({ sessionId }) {
       const state = useSessionCost(sessionId);
       const data = state.data;
+      const schedule = data?.schedule;
+      const [now, setNow] = useState(() => Date.now());
 
-      if (!data || !data.usageCalls) return null;
+      useEffect(() => {
+        if (!schedule) return undefined;
+        let timer;
+        // Wake exactly after the next window boundary (or every 30s) so the
+        // badge flips within a second of the switch, not up to 30s late.
+        const tick = () => {
+          const current = Date.now();
+          setNow(current);
+          const untilBoundary = scheduleView(schedule, current).next?.at;
+          const delay = untilBoundary === undefined
+            ? 30000
+            : Math.max(1000, Math.min(30000, untilBoundary - current + 1000));
+          timer = setTimeout(tick, delay);
+        };
+        tick();
+        return () => clearTimeout(timer);
+      }, [schedule]);
 
-      const cost = Number(data.cost?.totalUsd) || 0;
+      if (!data) return null;
+
+      const cost = data.usageCalls ? Number(data.cost?.totalUsd) || 0 : null;
+      const view = schedule ? scheduleView(schedule, now) : null;
+      const next = view?.next;
       const tokens = data.tokens ?? {};
       const rate = data.rate ?? {};
-      const mode = rate.mode === 'peak' ? 'peak' : rate.mode === 'mixed' ? 'peak + off-peak' : 'off-peak';
-      const tip = [
-        `Session cost ${fmtUsd(cost)} (${mode} rates)`,
-        `${fmtInt(data.usageCalls)} model calls · ${fmtTokens(tokens.total)} tokens`,
-        `Peak ${fmtUsd(rate.peakUsd)} · off-peak ${fmtUsd(rate.offPeakUsd)}`,
-        'Estimated from DeepSeek list prices; token-only.',
-      ].join('\n');
+      const multiplier = Number(data.pricing?.peakMultiplier) || 2;
+      const scheduleText = schedule
+        ? schedule.windowsUtc
+          .map((window) => `${String(window.startHour).padStart(2, '0')}:00–${String(window.endHour).padStart(2, '0')}:00`)
+          .join(' and ')
+        : '01:00–04:00 and 06:00–10:00';
 
-      return h('span', {
-        className: `dsx-cost${state.error ? ' is-stale' : ''}`,
-        title: tip,
-        'aria-label': `Session cost ${fmtUsd(cost)}`,
-      },
-        h('style', {}, COST_CSS),
-        h('span', { className: 'dsx-cost-value' }, `≈ ${fmtUsd(cost)}`)
+      if (!view && cost === null) return null;
+
+      const tip = [];
+      if (view) {
+        tip.push(view.peak
+          ? `Peak pricing now — ${multiplier}× the off-peak list rate.`
+          : 'Off-peak pricing now — the list rate.');
+        if (next) {
+          tip.push(`${next.peak ? 'Peak' : 'Off-peak'} in ${fmtDuration(next.at - now)} (${dayAt(next.at, view.timeZone)}).`);
+        }
+        tip.push(view.todayText
+          ? `Peak windows today: ${view.todayText} · ${view.timeZone}.`
+          : `${view.offReason}.`);
+        tip.push(`DeepSeek bills peak rates ${scheduleText} UTC, Mon–Fri; China holidays are off-peak.`);
+      }
+      if (cost !== null) {
+        const mode = rate.mode === 'peak' ? 'peak' : rate.mode === 'mixed' ? 'peak + off-peak' : 'off-peak';
+        tip.push(`Session cost ${fmtUsd(cost)} (${mode} rates).`);
+        tip.push(`${fmtInt(data.usageCalls)} model calls · ${fmtTokens(tokens.total)} tokens; peak ${fmtUsd(rate.peakUsd)} · off-peak ${fmtUsd(rate.offPeakUsd)}.`);
+        tip.push('Estimated from DeepSeek list prices; token-only.');
+      }
+
+      return h('span', { className: 'dsx-usage', title: tip.join('\n') },
+        h('style', {}, USAGE_CSS),
+        view
+          ? h('span', {
+            className: `dsx-rate-badge ${view.peak ? 'is-peak' : 'is-off'}`,
+            'aria-label': view.peak ? 'Peak pricing now' : 'Off-peak pricing now',
+          }, view.peak ? 'Peak' : 'Off-peak')
+          : null,
+        cost !== null
+          ? h('span', {
+            className: `dsx-session-cost${state.error ? ' is-stale' : ''}`,
+            'aria-label': `Session cost ${fmtUsd(cost)}`,
+          }, `≈ ${fmtUsd(cost)}`)
+          : null
       );
     }
 
@@ -1583,13 +1641,13 @@ window.__ModuleLoader__.load({
           order: 20,
           label: 'Usage',
         }, StatsIcon));
-        // Current conversation's spend, beside the composer's token readout.
+        // Current conversation's rate badge and spend, beside the composer's token readout.
         ctx.slots.inject('conversation.composer.dock', () => ctx.slots.register({
           name: 'conversation.composer.dock',
           id: 'usage-cost',
           order: 2,
-          label: 'Session cost',
-        }, SessionCostChip));
+          label: 'Session cost and rate',
+        }, SessionUsageChip));
       },
     };
   },

@@ -11,11 +11,13 @@ page.
 - **Ledger.** Total tokens, conversation count, message and turn counts, estimated
   spend, budget used, and total active time. A composition bar splits output /
   input (cache miss) / cache read, with the cache hit rate underneath.
-- **Session cost chip.** The composer dock shows the current conversation's
-  estimated spend (`≈ $0.84`) beside the token readout, updated every 10s. Hover
-  for the call count, token total, peak/off-peak split, and the estimate note; the
-  chip is hidden until the conversation has a priced call. It follows the session
-  you switch to, so every conversation carries its own cost.
+- **Session cost and rate chip.** The composer dock shows a **Peak** / **Off-peak**
+  badge for the current conversation's billing window plus its estimated spend
+  (`≈ $0.84`) beside the token readout. The badge flips within a second of a window
+  boundary, and the cost refreshes every 10s; hover for the next switch, today's
+  peak windows, the call count, token total, and the peak/off-peak split. The cost
+  stays hidden until the conversation has a priced call, and everything follows the
+  session you switch to, so every conversation carries its own rate and cost.
 - **Rate clock.** A live peak/off-peak strip: local time and zone, a **Peak now** /
   **Off-peak now** chip, a countdown to the next switch, today's peak windows in
   your timezone, spend split by rate with the peak premium, and a seven-day strip
@@ -52,10 +54,11 @@ page.
   interval, so the history starts when the plugin loads.
 - A second prefix route, `/plugins/dsh-stats/session?session=<id>`, folds one
   conversation for the composer chip and returns its estimated spend, token
-  split, and peak/off-peak breakdown. The chip is mounted into the
-  `conversation.composer.dock` slot next to the shipped token readout, polls every
-  10s, keeps the last good value, and is hidden until the conversation has a
-  priced call.
+  split, peak/off-peak breakdown, and the rate schedule. The chip is mounted into
+  the `conversation.composer.dock` slot next to the shipped token readout, renders
+  the live rate badge from the schedule (woken at the next boundary, and at least
+  every 30s), polls the route every 10s, and keeps the last good value; the cost
+  part appears only once the conversation has a priced call.
 - The Client half polls the route every 6s, keeps the last good payload, and shows
   a stale banner instead of dropping the page when a refresh fails. One route
   feeds every card, so the numbers on screen are always from the same snapshot.

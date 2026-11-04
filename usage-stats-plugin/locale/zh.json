@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "用量统计",
-    "description": "Harness 的实时 Token、费用、预算、会话与 CPU 遥测，并按你的时区显示 DeepSeek 高峰与低谷时段费率，并在输入框下方显示当前会话费用。"
+    "description": "Harness 的实时 Token、费用、预算、会话与 CPU 遥测，并按你的时区显示 DeepSeek 高峰与低谷时段费率，并在输入框下方显示当前会话的峰谷时段徽章与费用。"
   }
 }

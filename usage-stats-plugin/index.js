@@ -728,17 +728,22 @@ function aggregate(summaries, budgetUsd, timeZone) {
         peakPremiumUsd,
         peakSharePct: totals.cost.totalUsd > 0 ? 100 * totals.peakCostUsd / totals.cost.totalUsd : 0,
       },
-      schedule: {
-        version: PRICING_VERSION,
-        timeZone,
-        holidayTimeZone: SCHEDULE_TIME_ZONE,
-        windowsUtc: PEAK_WINDOWS_UTC.map((window) => ({ startHour: window.startHour, endHour: window.endHour })),
-        weekdays: [1, 2, 3, 4, 5],
-        holidays: [...holidaySet].sort(),
-        source: 'https://api-docs.deepseek.com/quick_start/pricing',
-      },
+      schedule: scheduleInfo(timeZone),
       note: 'DeepSeek list prices per 1M tokens. Peak hours are 01:00–04:00 and 06:00–10:00 UTC, Monday–Friday, excluding Chinese public holidays; peak rates are double and everything else is off-peak. Token usage only; excludes search, fetch, and taxes.',
     },
+  };
+}
+
+/** The peak/off-peak schedule the Client needs to render the rate badge and clock. */
+function scheduleInfo(timeZone) {
+  return {
+    version: PRICING_VERSION,
+    timeZone,
+    holidayTimeZone: SCHEDULE_TIME_ZONE,
+    windowsUtc: PEAK_WINDOWS_UTC.map((window) => ({ startHour: window.startHour, endHour: window.endHour })),
+    weekdays: [1, 2, 3, 4, 5],
+    holidays: [...holidaySet].sort(),
+    source: 'https://api-docs.deepseek.com/quick_start/pricing',
   };
 }
 
@@ -749,7 +754,7 @@ function aggregate(summaries, budgetUsd, timeZone) {
  * chip. Kept apart from `aggregate` so polling one session never scans the
  * whole ledger.
  */
-function sessionPayload(summary) {
+function sessionPayload(summary, timeZone) {
   const rateMode = summary.peakEvents === 0
     ? 'off-peak'
     : summary.offPeakEvents === 0
@@ -781,6 +786,7 @@ function sessionPayload(summary) {
       offPeakTokens: summary.offPeakTokens,
       peakPremiumUsd,
     },
+    schedule: scheduleInfo(timeZone),
     pricing: {
       peakMultiplier: PEAK_MULTIPLIER,
       fallbackModel: FALLBACK_MODEL,
@@ -851,7 +857,7 @@ export function apply(ctx, config) {
         try {
           const log = await ctx.sessionQuery.readSession(sessionId);
           const summary = summarizeLog(log, null, liveSessionIds().has(sessionId));
-          sendJson(res, 200, sessionPayload(summary));
+          sendJson(res, 200, sessionPayload(summary, timeZone));
         } catch (error) {
           sendJson(res, 404, { error: 'session-not-found', message: String(error?.message ?? error) });
         }
