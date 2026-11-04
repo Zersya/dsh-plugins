@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Usage Statistics",
-    "description": "Live token, cost, budget, conversation, and CPU telemetry for the Harness."
+    "description": "Live token, cost, budget, conversation, and CPU telemetry for the Harness, with DeepSeek peak and off-peak rate windows in your timezone."
   }
 }

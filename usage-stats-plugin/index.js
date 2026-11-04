@@ -18,9 +18,14 @@ const MAX_CPU_SAMPLES = 180;
 const CPU_SAMPLE_MS = 2000;
 
 /**
- * DeepSeek list prices, USD per 1M tokens. Peak hours are 01:00-04:00 and
- * 06:00-10:00 UTC on weekdays; all other hours are off-peak at half these
- * rates. The estimate intentionally stays token-only.
+ * DeepSeek list prices, USD per 1M tokens.
+ *
+ * Peak windows are 01:00-04:00 and 06:00-10:00 UTC, Monday through Friday,
+ * excluding Chinese public holidays, and bill at double the list rate. Every
+ * other hour — weekends, holidays, and the gaps between the windows — bills at
+ * the list (off-peak) rate. Source: https://api-docs.deepseek.com/quick_start/pricing
+ *
+ * The estimate intentionally stays token-only.
  */
 const PRICING = {
   'deepseek-flash': { cacheHit: 0.003, cacheMiss: 0.15, output: 0.6 },
@@ -28,6 +33,35 @@ const PRICING = {
 };
 const FALLBACK_MODEL = 'deepseek-flash';
 const PEAK_MULTIPLIER = 2;
+/** Bump when rates, windows, or holidays change so cached costs are rebuilt. */
+const PRICING_VERSION = '2026-11-04';
+
+/** Peak windows in UTC; both sit inside one UTC day, so an hour test is enough. */
+const PEAK_WINDOWS_UTC = [
+  { startHour: 1, endHour: 4 },
+  { startHour: 6, endHour: 10 },
+];
+
+/** DeepSeek decides the weekday and the holiday from China Standard Time. */
+const SCHEDULE_TIME_ZONE = 'Asia/Shanghai';
+
+/**
+ * Chinese public holidays (China Standard Time dates) that DeepSeek bills as
+ * off-peak. 2026 comes from 国办发明电〔2025〕7号:
+ * https://www.gov.cn/zhengce/content/202511/content_7047090.htm
+ * Extend this list with the `holidays` config key when the 2027 notice lands.
+ */
+const CHINA_HOLIDAY_RANGES_2026 = [
+  ['2026-01-01', '2026-01-03'],
+  ['2026-02-15', '2026-02-23'],
+  ['2026-04-04', '2026-04-06'],
+  ['2026-05-01', '2026-05-05'],
+  ['2026-06-19', '2026-06-21'],
+  ['2026-09-25', '2026-09-27'],
+  ['2026-10-01', '2026-10-07'],
+];
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 const summaryCache = new Map();
 let cpuMonitor;
@@ -55,12 +89,58 @@ function priceFor(model) {
   return PRICING[model] ?? PRICING[FALLBACK_MODEL];
 }
 
+/** The Host machine's zone, unless the Config row names a valid IANA zone. */
+function resolveTimeZone(value) {
+  const fallback = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  const candidate = cleanText(value);
+  if (!candidate) return fallback;
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: candidate });
+    return candidate;
+  } catch {
+    return fallback;
+  }
+}
+
+const scheduleDayFormat = new Intl.DateTimeFormat('en-US', {
+  timeZone: SCHEDULE_TIME_ZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+/** `YYYY-MM-DD` for the China Standard Time calendar day of `time`. */
+function scheduleDayKey(time) {
+  const parts = scheduleDayFormat.formatToParts(new Date(time));
+  const pick = (type) => parts.find((part) => part.type === type)?.value ?? '';
+  return `${pick('year')}-${pick('month')}-${pick('day')}`;
+}
+
+function expandHolidayRanges(ranges) {
+  const days = new Set();
+  for (const [from, to] of ranges) {
+    const start = Date.parse(`${from}T00:00:00Z`);
+    const end = Date.parse(`${to}T00:00:00Z`);
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) continue;
+    for (let t = start; t <= end; t += DAY_MS) days.add(new Date(t).toISOString().slice(0, 10));
+  }
+  return days;
+}
+
+/** Holiday set in effect for this Host plugin instance (config can extend it). */
+let holidaySet = expandHolidayRanges(CHINA_HOLIDAY_RANGES_2026);
+
+/**
+ * True when `time` bills at the peak rate: inside a UTC peak window, on a
+ * China Standard Time weekday that is not a Chinese public holiday.
+ */
 function isPeak(time) {
-  const date = new Date(time);
-  const day = date.getUTCDay();
-  if (day === 0 || day === 6) return false;
-  const hour = date.getUTCHours();
-  return (hour >= 1 && hour < 4) || (hour >= 6 && hour < 10);
+  const dayKey = scheduleDayKey(time);
+  if (holidaySet.has(dayKey)) return false;
+  const weekday = new Date(`${dayKey}T00:00:00Z`).getUTCDay();
+  if (weekday === 0 || weekday === 6) return false;
+  const hour = new Date(time).getUTCHours();
+  return PEAK_WINDOWS_UTC.some((window) => hour >= window.startHour && hour < window.endHour);
 }
 
 function costParts(usage, model, time) {
@@ -225,6 +305,10 @@ function summarizeLog(log, snapshot, live) {
     usageEvents: [],
     peakEvents: 0,
     offPeakEvents: 0,
+    peakCostUsd: 0,
+    offPeakCostUsd: 0,
+    peakTokens: 0,
+    offPeakTokens: 0,
   };
 
   let turnStart;
@@ -275,6 +359,8 @@ function summarizeLog(log, snapshot, live) {
       const model = cleanText(event.data?.message?.source?.model) || 'unknown';
       const provider = cleanText(event.data?.message?.source?.provider) || 'unknown';
       const parts = costParts(usage, model, t);
+      const callTokens = number(usage.inputTokens) + number(usage.outputTokens)
+        + number(usage.cacheReadTokens) + number(usage.cacheWriteTokens);
       summary.usageCalls += 1;
       addTokens(summary.tokens, usage);
       addCost(summary.cost, parts);
@@ -284,14 +370,20 @@ function summarizeLog(log, snapshot, live) {
         output: number(usage.outputTokens),
         cacheRead: number(usage.cacheReadTokens),
         cacheWrite: number(usage.cacheWriteTokens),
-        total: number(usage.inputTokens) + number(usage.outputTokens)
-          + number(usage.cacheReadTokens) + number(usage.cacheWriteTokens),
+        total: callTokens,
         cost: { inputUsd: parts.input, cacheUsd: parts.cache, outputUsd: parts.output, totalUsd: parts.total },
         model,
         peak: parts.peak,
       });
-      if (parts.peak) summary.peakEvents += 1;
-      else summary.offPeakEvents += 1;
+      if (parts.peak) {
+        summary.peakEvents += 1;
+        summary.peakCostUsd += parts.total;
+        summary.peakTokens += callTokens;
+      } else {
+        summary.offPeakEvents += 1;
+        summary.offPeakCostUsd += parts.total;
+        summary.offPeakTokens += callTokens;
+      }
 
       const key = `${provider}/${model}`;
       const entry = summary.models[key] ?? {
@@ -320,7 +412,7 @@ function summarizeLog(log, snapshot, live) {
 
 async function loadSummary(ctx, snapshot, live, signal) {
   const id = snapshot.header.id;
-  const revision = String(snapshot.revision ?? `${snapshot.eventCount ?? 0}:${snapshot.sizeBytes ?? 0}`);
+  const revision = `${PRICING_VERSION}|${snapshot.revision ?? `${snapshot.eventCount ?? 0}:${snapshot.sizeBytes ?? 0}`}`;
   const cached = summaryCache.get(id);
   if (cached && cached.revision === revision) return cached.summary;
 
@@ -443,7 +535,7 @@ function buildTimeline(summaries) {
   return { bucketMs, from: start, to: end, buckets: output };
 }
 
-function aggregate(summaries, budgetUsd) {
+function aggregate(summaries, budgetUsd, timeZone) {
   const now = Date.now();
   const nowDate = new Date(now);
   const monthStart = new Date(nowDate.getFullYear(), nowDate.getMonth(), 1).getTime();
@@ -469,6 +561,10 @@ function aggregate(summaries, budgetUsd) {
     blendedPerMillionUsd: 0,
     peakEvents: 0,
     offPeakEvents: 0,
+    peakCostUsd: 0,
+    offPeakCostUsd: 0,
+    peakTokens: 0,
+    offPeakTokens: 0,
     monthSpendUsd: 0,
     todaySpendUsd: 0,
   };
@@ -491,6 +587,10 @@ function aggregate(summaries, budgetUsd) {
     totals.activeMs += summary.activeMs;
     totals.peakEvents += summary.peakEvents;
     totals.offPeakEvents += summary.offPeakEvents;
+    totals.peakCostUsd += summary.peakCostUsd;
+    totals.offPeakCostUsd += summary.offPeakCostUsd;
+    totals.peakTokens += summary.peakTokens;
+    totals.offPeakTokens += summary.offPeakTokens;
     if (summary.createdAt < earliest) earliest = summary.createdAt;
     if (summary.lastAt > latest) latest = summary.lastAt;
 
@@ -571,12 +671,13 @@ function aggregate(summaries, budgetUsd) {
     : totals.offPeakEvents === 0
       ? 'peak'
       : 'mixed';
+  const peakPremiumUsd = totals.peakCostUsd - totals.peakCostUsd / PEAK_MULTIPLIER;
 
   return {
     version: 1,
     generatedAt: now,
     profile: process.env.DSH_PROFILE ?? null,
-    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    timeZone,
     totals,
     budget,
     timeline,
@@ -618,7 +719,25 @@ function aggregate(summaries, budgetUsd) {
       rateMode,
       peakEvents: totals.peakEvents,
       offPeakEvents: totals.offPeakEvents,
-      note: 'DeepSeek list prices per 1M tokens. Peak hours are 01:00-04:00 and 06:00-10:00 UTC on weekdays; off-peak is half price. Token usage only; excludes search, fetch, and taxes.',
+      spend: {
+        peakUsd: totals.peakCostUsd,
+        offPeakUsd: totals.offPeakCostUsd,
+        peakTokens: totals.peakTokens,
+        offPeakTokens: totals.offPeakTokens,
+        /** What the peak-priced calls would have cost at off-peak rates. */
+        peakPremiumUsd,
+        peakSharePct: totals.cost.totalUsd > 0 ? 100 * totals.peakCostUsd / totals.cost.totalUsd : 0,
+      },
+      schedule: {
+        version: PRICING_VERSION,
+        timeZone,
+        holidayTimeZone: SCHEDULE_TIME_ZONE,
+        windowsUtc: PEAK_WINDOWS_UTC.map((window) => ({ startHour: window.startHour, endHour: window.endHour })),
+        weekdays: [1, 2, 3, 4, 5],
+        holidays: [...holidaySet].sort(),
+        source: 'https://api-docs.deepseek.com/quick_start/pricing',
+      },
+      note: 'DeepSeek list prices per 1M tokens. Peak hours are 01:00–04:00 and 06:00–10:00 UTC, Monday–Friday, excluding Chinese public holidays; peak rates are double and everything else is off-peak. Token usage only; excludes search, fetch, and taxes.',
     },
   };
 }
@@ -640,6 +759,14 @@ export function apply(ctx, config) {
   const defaultBudget = Number.isFinite(configuredBudget) && configuredBudget > 0
     ? Math.min(configuredBudget, MAX_BUDGET_USD)
     : DEFAULT_BUDGET_USD;
+
+  const timeZone = resolveTimeZone(config?.timeZone);
+  holidaySet = new Set([
+    ...expandHolidayRanges(CHINA_HOLIDAY_RANGES_2026),
+    ...(Array.isArray(config?.holidays) ? config.holidays : [])
+      .map((day) => cleanText(day))
+      .filter((day) => /^\d{4}-\d{2}-\d{2}$/.test(day)),
+  ]);
 
   cpuMonitor = createCpuMonitor();
   cpuMonitor.prime();
@@ -708,7 +835,7 @@ export function apply(ctx, config) {
           const conversations = summaries.filter((summary) => (
             summary.userMessages + summary.assistantMessages > 0
           ));
-          sendJson(res, 200, aggregate(conversations, budgetUsd));
+          sendJson(res, 200, aggregate(conversations, budgetUsd, timeZone));
         } catch (error) {
           sendJson(res, 500, { error: String(error?.message ?? error) });
         }

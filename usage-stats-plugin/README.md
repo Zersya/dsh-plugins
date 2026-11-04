@@ -11,6 +11,10 @@ page.
 - **Ledger.** Total tokens, conversation count, message and turn counts, estimated
   spend, budget used, and total active time. A composition bar splits output /
   input (cache miss) / cache read, with the cache hit rate underneath.
+- **Rate clock.** A live peak/off-peak strip: local time and zone, a **Peak now** /
+  **Off-peak now** chip, a countdown to the next switch, today's peak windows in
+  your timezone, spend split by rate with the peak premium, and a seven-day strip
+  that shades each day's peak windows (weekends and Chinese holidays off-peak).
 - **Token timeline.** Stacked bars over automatically chosen intervals — 10
   minutes up to a 3h span, hourly to 36h, daily to 21 days, weekly beyond that,
   capped near 160 buckets. Switch the measure between tokens and estimated cost;
@@ -54,11 +58,43 @@ Costs are token-only estimates from DeepSeek list prices per 1M tokens.
 | `deepseek-flash` | 0.003 | 0.15 | 0.6 |
 | `deepseek-v4-pro` | 0.022 | 0.66 | 1.98 |
 
-Peak hours are 01:00–04:00 and 06:00–10:00 UTC on weekdays and cost double;
-everything else is off-peak at the list rate. Unknown model ids are priced as
-`deepseek-flash`. Cache writes are counted at the cache-miss rate. Search, fetch,
-and taxes are excluded. The page prints the rate mode it used (peak, off-peak, or
-mixed) so an estimate is never ambiguous.
+### Peak and off-peak
+
+DeepSeek bills peak hours at **2× the off-peak (list) rate**:
+
+- **Peak:** 01:00–04:00 and 06:00–10:00 UTC, Monday–Friday, excluding Chinese
+  public holidays.
+- **Off-peak:** every other hour — weekends, Chinese public holidays, and the
+  gaps between the windows.
+
+That is 08:00–11:00 and 13:00–17:00 in Asia/Jakarta (WIB). The weekday and the
+holiday are evaluated in China Standard Time, the way DeepSeek bills them.
+Sources: [DeepSeek pricing](https://api-docs.deepseek.com/quick_start/pricing) and
+the 2026 State Council holiday notice
+([国办发明电〔2025〕7号](https://www.gov.cn/zhengce/content/202511/content_7047090.htm)).
+
+Every response is priced from its own timestamp, so a ledger spanning both modes
+reports `peak`, `off-peak`, or `mixed` and splits spend accordingly. Unknown model
+ids are priced as `deepseek-flash`. Cache writes are counted at the cache-miss
+rate. Search, fetch, and taxes are excluded.
+
+### Rate clock
+
+The page opens with a rate clock card in the Host's timezone:
+
+- live local time and the zone (`GMT+7 · Asia/Jakarta`) with a **Peak now** /
+  **Off-peak now** chip;
+- a second-by-second countdown to the next switch, e.g. "Peak in 14h 33m —
+  peak starts Thu, Nov 5";
+- today's peak windows in local time, or why the day is off-peak (weekend,
+  Chinese holiday);
+- spend split by rate, including the peak premium — what those calls would have
+  cost at off-peak rates;
+- a seven-day strip shading each day's peak windows, with weekends and holidays
+  marked off-peak.
+
+Local windows are derived from the UTC schedule, so the card follows daylight
+saving in any zone; use `timeZone` to override the Host default.
 
 ## Install
 
@@ -80,6 +116,19 @@ install it alongside if you want the farm.
 
 - `budgetUsd` in the `cordis.patch.yml` row sets the default monthly budget
   (default `5`, capped at `1,000,000`).
+- `timeZone` (optional) overrides the IANA zone used by the rate clock; the Host
+  machine's zone is the default.
+- `holidays` (optional) extends the Chinese public-holiday list with extra
+  `YYYY-MM-DD` days that bill off-peak, e.g.
+  ```yaml
+  - id: usage-stats
+    name: '@local/dsh-usage-stats'
+    config:
+      budgetUsd: 5
+      timeZone: Asia/Jakarta
+      holidays: ['2027-01-01']
+  ```
+  The built-in list covers 2026; add the next State Council notice when it lands.
 - The page also accepts `?budgetUsd=` on the route, and stores the budget you type
   in the field under `dsh.usage-stats.budgetUsd` in `localStorage`.
 

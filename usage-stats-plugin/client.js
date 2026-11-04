@@ -144,6 +144,13 @@ window.__ModuleLoader__.load({
       .dsx-note { margin:16px 0 0; color:var(--dsw-alias-label-secondary); font-size:10.5px; line-height:1.5; }
       .dsx-note a { color:var(--dsw-alias-label-primary); text-decoration:none; border-bottom:1px solid var(--dsw-alias-border-l2); }
       .dsx-note a:hover { border-bottom-color:var(--dsw-alias-label-primary); }
+      @media (max-width: 820px) {
+        .dsx-week-axis, .dsx-week-row { grid-template-columns:86px minmax(0,1fr) 104px; }
+        .dsx-week-axis > span:first-child { font-size:9px; }
+        .dsx-ledger { grid-template-columns:minmax(0,1fr); gap:22px; }
+        .dsx-figures { border-left:0; padding-left:0; }
+        .dsx-grid-main, .dsx-detail { grid-template-columns:minmax(0,1fr); }
+      }
       .dsx-cpu-figures { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; margin-top:17px; }
       .dsx-cpu-value { font-size:25px; line-height:1; font-weight:550; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
       .dsx-cpu-label { margin-top:4px; color:var(--dsw-alias-label-secondary); font-size:10.5px; }
@@ -165,6 +172,38 @@ window.__ModuleLoader__.load({
       .dsx-cost-fill.out { background:var(--dsw-alias-state-warn-primary); }
       .dsx-cost-fill.in { background:var(--dsw-alias-label-primary); opacity:.58; }
       .dsx-cost-fill.cache { background:var(--dsw-alias-label-secondary); opacity:.32; }
+      .dsx-rate { margin-top:26px; padding:18px 20px 17px; border:1px solid var(--dsw-alias-border-l1); border-radius:10px; background:var(--dsw-alias-bg-layer-1); }
+      .dsx-rate-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+      .dsx-rate-clock { display:flex; align-items:baseline; gap:9px; }
+      .dsx-rate-time { font-size:24px; line-height:1; font-weight:550; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
+      .dsx-rate-zone { color:var(--dsw-alias-label-secondary); font-size:10.5px; }
+      .dsx-rate-sub { margin-top:7px; color:var(--dsw-alias-label-secondary); font-size:11px; }
+      .dsx-rate-chip { display:inline-flex; align-items:center; gap:7px; padding:4px 10px; border:1px solid currentColor; border-radius:999px; font-size:10.5px; font-weight:550; white-space:nowrap; }
+      .dsx-rate-chip.is-peak { color:var(--dsw-alias-state-warn-primary); }
+      .dsx-rate-chip.is-off { color:var(--dsw-alias-state-success-primary); }
+      .dsx-rate-chip i { width:6px; height:6px; border-radius:50%; background:currentColor; }
+      .dsx-rate-body { display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:16px 26px; margin-top:17px; padding-top:15px; border-top:1px solid var(--dsw-alias-border-l1); }
+      .dsx-rate-label { color:var(--dsw-alias-label-secondary); font-size:10px; letter-spacing:.045em; text-transform:uppercase; }
+      .dsx-rate-value { margin-top:5px; font-size:13px; font-weight:550; font-variant-numeric:tabular-nums; }
+      .dsx-rate-meta { margin-top:3px; color:var(--dsw-alias-label-secondary); font-size:10.5px; }
+      .dsx-rate-split { margin-top:16px; padding-top:14px; border-top:1px solid var(--dsw-alias-border-l1); }
+      .dsx-rate-split-bar { display:flex; height:7px; margin-top:9px; border-radius:999px; background:var(--dsw-alias-bg-layer-2); overflow:hidden; }
+      .dsx-rate-split-seg { height:100%; }
+      .dsx-rate-split-seg.peak { background:var(--dsw-alias-state-warn-primary); }
+      .dsx-rate-split-seg.off { background:var(--dsw-alias-state-success-primary); }
+      .dsx-rate-split-legend { display:flex; flex-wrap:wrap; gap:6px 20px; margin-top:8px; color:var(--dsw-alias-label-secondary); font-size:10.5px; }
+      .dsx-rate-split-legend b { color:var(--dsw-alias-label-primary); font-weight:550; font-variant-numeric:tabular-nums; }
+      .dsx-week { margin-top:16px; padding-top:14px; border-top:1px solid var(--dsw-alias-border-l1); }
+      .dsx-week-axis { display:grid; grid-template-columns:104px minmax(0,1fr) 122px; gap:10px; color:var(--dsw-alias-label-secondary); font-size:9.5px; }
+      .dsx-week-axis-track { display:flex; justify-content:space-between; font-variant-numeric:tabular-nums; }
+      .dsx-week-row { display:grid; grid-template-columns:104px minmax(0,1fr) 122px; gap:10px; align-items:center; margin-top:5px; }
+      .dsx-week-day { color:var(--dsw-alias-label-secondary); font-size:10.5px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+      .dsx-week-row.is-today .dsx-week-day { color:var(--dsw-alias-label-primary); font-weight:550; }
+      .dsx-week-track { position:relative; height:12px; border-radius:4px; background:var(--dsw-alias-bg-layer-2); overflow:hidden; }
+      .dsx-week-seg { position:absolute; top:0; bottom:0; background:var(--dsw-alias-state-warn-primary); opacity:.78; }
+      .dsx-week-row.is-today .dsx-week-seg { opacity:1; }
+      .dsx-week-now { position:absolute; top:-1px; bottom:-1px; width:1.5px; margin-left:.75px; background:var(--dsw-alias-label-primary); }
+      .dsx-week-meta { color:var(--dsw-alias-label-secondary); font-size:10px; text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
       .dsx-conv-head { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; }
       .dsx-table-head {
         display:grid; grid-template-columns:minmax(0,1fr) 94px 86px 76px 84px 16px; gap:14px;
@@ -361,6 +400,307 @@ window.__ModuleLoader__.load({
       if (mode === 'peak') return 'peak rates';
       if (mode === 'mixed') return 'peak + off-peak rates';
       return 'off-peak rates';
+    }
+
+    /* ------------------------------------------------- peak schedule helpers */
+
+    const MS_DAY = 86400000;
+    const formatterCache = new Map();
+
+    function formatter(timeZone, options) {
+      const key = `${timeZone}|${JSON.stringify(options)}`;
+      let cached = formatterCache.get(key);
+      if (!cached) {
+        cached = new Intl.DateTimeFormat('en-US', { timeZone, ...options });
+        formatterCache.set(key, cached);
+      }
+      return cached;
+    }
+
+    function zoneParts(time, timeZone) {
+      const parts = formatter(timeZone, {
+        hour12: false, year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', weekday: 'short',
+      }).formatToParts(new Date(time));
+      const map = {};
+      for (const part of parts) if (part.type !== 'literal') map[part.type] = part.value;
+      return {
+        year: Number(map.year),
+        month: Number(map.month),
+        day: Number(map.day),
+        hour: Number(map.hour) % 24,
+        minute: Number(map.minute),
+        second: Number(map.second),
+      };
+    }
+
+    /** Milliseconds the zone is ahead of UTC at `time`. */
+    function zoneOffset(time, timeZone) {
+      const parts = zoneParts(time, timeZone);
+      const asUtc = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
+      return asUtc - Math.floor(time / 1000) * 1000;
+    }
+
+    function localDayStart(time, timeZone) {
+      const parts = zoneParts(time, timeZone);
+      const naive = Date.UTC(parts.year, parts.month - 1, parts.day);
+      return naive - zoneOffset(naive - zoneOffset(time, timeZone), timeZone);
+    }
+
+    function zoneDayKey(time, timeZone) {
+      const parts = zoneParts(time, timeZone);
+      return `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`;
+    }
+
+    function clockAt(time, timeZone) {
+      return formatter(timeZone, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(time));
+    }
+
+    function dayAt(time, timeZone) {
+      return formatter(timeZone, { weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(time));
+    }
+
+    function zoneName(timeZone, time) {
+      try {
+        return formatter(timeZone, { timeZoneName: 'short' })
+          .formatToParts(new Date(time))
+          .find((part) => part.type === 'timeZoneName')?.value ?? '';
+      } catch {
+        return '';
+      }
+    }
+
+    /** Peak intervals (UTC ms) for one UTC calendar day, honouring weekends and holidays. */
+    function peakDayIntervals(dayKey, windows, holidays) {
+      const weekday = new Date(`${dayKey}T00:00:00Z`).getUTCDay();
+      if (weekday === 0 || weekday === 6 || holidays.has(dayKey)) return [];
+      const [year, month, day] = dayKey.split('-').map(Number);
+      return windows.map((window) => ({
+        start: Date.UTC(year, month - 1, day, window.startHour),
+        end: Date.UTC(year, month - 1, day, window.endHour),
+      }));
+    }
+
+    function peakIntervals(from, to, windows, holidays) {
+      const found = [];
+      const first = Math.floor(from / MS_DAY) * MS_DAY - MS_DAY;
+      for (let day = first; day <= to + MS_DAY; day += MS_DAY) {
+        const key = new Date(day).toISOString().slice(0, 10);
+        for (const interval of peakDayIntervals(key, windows, holidays)) found.push(interval);
+      }
+      return found.sort((a, b) => a.start - b.start);
+    }
+
+    function windowText(intervals, dayStart, timeZone) {
+      return intervals.map((interval) => (
+        `${clockAt(Math.max(interval.start, dayStart), timeZone)}–${clockAt(Math.min(interval.end, dayStart + MS_DAY), timeZone)}`
+      )).join(' · ');
+    }
+
+    /** Local-time peak windows of the next day that has any (weekends/holidays have none). */
+    function upcomingWindowText(schedule, reference) {
+      if (!schedule?.windowsUtc?.length) return null;
+      const timeZone = schedule.timeZone;
+      const windows = schedule.windowsUtc;
+      const holidays = new Set(schedule.holidays ?? []);
+      for (let index = 0; index < 8; index += 1) {
+        const day = localDayStart(reference + index * MS_DAY + MS_DAY / 2, timeZone);
+        const intervals = peakIntervals(day, day + MS_DAY, windows, holidays)
+          .filter((interval) => interval.end > day && interval.start < day + MS_DAY);
+        if (intervals.length) return windowText(intervals, day, timeZone);
+      }
+      return null;
+    }
+
+    /**
+     * Everything the rate clock shows: current mode, the next switch, today's
+     * windows, and the next seven local days, all in the Host's timezone.
+     */
+    function scheduleView(schedule, now) {
+      const timeZone = schedule.timeZone;
+      const windows = schedule.windowsUtc ?? [];
+      const holidays = new Set(schedule.holidays ?? []);
+      const holidayZone = schedule.holidayTimeZone || 'Asia/Shanghai';
+      const today = localDayStart(now, timeZone);
+      const todayIntervals = peakIntervals(today, today + MS_DAY, windows, holidays)
+        .filter((interval) => interval.end > today && interval.start < today + MS_DAY);
+
+      let current = null;
+      for (const interval of peakDayIntervals(new Date(now).toISOString().slice(0, 10), windows, holidays)) {
+        if (now >= interval.start && now < interval.end) {
+          current = interval;
+          break;
+        }
+      }
+
+      let next = null;
+      if (current) {
+        next = { at: current.end, peak: false };
+      } else {
+        const upcoming = peakIntervals(now, now + 8 * MS_DAY, windows, holidays)
+          .filter((interval) => interval.start > now)[0];
+        if (upcoming) next = { at: upcoming.start, peak: true };
+      }
+
+      const todayKey = zoneDayKey(today + MS_DAY / 2, holidayZone);
+      const weekday = new Date(`${todayKey}T00:00:00Z`).getUTCDay();
+      const offReason = holidays.has(todayKey)
+        ? 'Chinese public holiday — off-peak all day'
+        : weekday === 0 || weekday === 6
+          ? 'Weekend — off-peak all day'
+          : 'No peak window today';
+
+      const week = [];
+      for (let index = 0; index < 7; index += 1) {
+        const dayStart = localDayStart(today + index * MS_DAY + MS_DAY / 2, timeZone);
+        const dayEnd = dayStart + MS_DAY;
+        const intervals = peakIntervals(dayStart, dayEnd, windows, holidays)
+          .filter((interval) => interval.end > dayStart && interval.start < dayEnd);
+        const key = zoneDayKey(dayStart + MS_DAY / 2, holidayZone);
+        const dayWeekday = new Date(`${key}T00:00:00Z`).getUTCDay();
+        week.push({
+          key,
+          today: index === 0,
+          label: formatter(timeZone, { weekday: 'short' }).format(new Date(dayStart)),
+          date: formatter(timeZone, { day: 'numeric' }).format(new Date(dayStart)),
+          segments: intervals.map((interval) => ({
+            left: (Math.max(interval.start, dayStart) - dayStart) / MS_DAY * 100,
+            width: (Math.min(interval.end, dayEnd) - Math.max(interval.start, dayStart)) / MS_DAY * 100,
+          })),
+          meta: intervals.length
+            ? windowText(intervals, dayStart, timeZone)
+            : holidays.has(key)
+              ? 'holiday · off-peak'
+              : dayWeekday === 0 || dayWeekday === 6
+                ? 'weekend · off-peak'
+                : 'off-peak',
+        });
+      }
+
+      return {
+        timeZone,
+        peak: Boolean(current),
+        next,
+        todayStart: today,
+        todayIntervals,
+        todayText: todayIntervals.length ? windowText(todayIntervals, today, timeZone) : null,
+        offReason,
+        week,
+        nowPct: (now - today) / MS_DAY * 100,
+      };
+    }
+
+    /* ------------------------------------------------------------------ rate clock */
+
+    function RateClock({ pricing }) {
+      const schedule = pricing?.schedule;
+      const [now, setNow] = useState(() => Date.now());
+
+      useEffect(() => {
+        const timer = setInterval(() => setNow(Date.now()), 1000);
+        return () => clearInterval(timer);
+      }, []);
+
+      if (!schedule) return null;
+
+      const view = scheduleView(schedule, now);
+      const spend = pricing.spend;
+      const total = spend ? spend.peakUsd + spend.offPeakUsd : 0;
+      const peakShare = total > 0 ? spend.peakUsd / total * 100 : 0;
+      const next = view.next;
+      const windowsText = upcomingWindowText(schedule, now);
+
+      return h('section', { className: 'dsx-rate', 'aria-label': 'DeepSeek rate clock' },
+        h('div', { className: 'dsx-rate-head' },
+          h('div', {},
+            h('div', { className: 'dsx-rate-clock' },
+              h('span', { className: 'dsx-rate-time' }, clockAt(now, view.timeZone)),
+              h('span', { className: 'dsx-rate-zone' }, `${zoneName(view.timeZone, now)} · ${view.timeZone}`)
+            ),
+            h('div', { className: 'dsx-rate-sub' },
+              view.peak
+                ? `Peak pricing is live — ${pricing.peakMultiplier}× the off-peak list rate.`
+                : 'Off-peak pricing — half the peak list rate.'
+            )
+          ),
+          h('span', { className: `dsx-rate-chip ${view.peak ? 'is-peak' : 'is-off'}` },
+            h('i', {}),
+            view.peak ? 'Peak now' : 'Off-peak now'
+          )
+        ),
+        h('div', { className: 'dsx-rate-body' },
+          h('div', {},
+            h('div', { className: 'dsx-rate-label' }, 'Next change'),
+            h('div', { className: 'dsx-rate-value' },
+              next ? `${next.peak ? 'Peak' : 'Off-peak'} in ${fmtDuration(next.at - now)}` : 'No change scheduled'
+            ),
+            h('div', { className: 'dsx-rate-meta' },
+              next ? `${next.peak ? 'Peak starts' : 'Off-peak starts'} ${dayAt(next.at, view.timeZone)}` : '—'
+            )
+          ),
+          h('div', {},
+            h('div', { className: 'dsx-rate-label' }, 'Peak windows today'),
+            h('div', { className: 'dsx-rate-value' }, view.todayText ?? 'None'),
+            h('div', { className: 'dsx-rate-meta' },
+              view.todayText ? `Your time · ${view.timeZone}` : view.offReason
+            )
+          ),
+          h('div', {},
+            h('div', { className: 'dsx-rate-label' }, 'Peak windows (UTC)'),
+            h('div', { className: 'dsx-rate-value' },
+              schedule.windowsUtc.map((window) => (
+                `${String(window.startHour).padStart(2, '0')}:00–${String(window.endHour).padStart(2, '0')}:00`
+              )).join(' · ')
+            ),
+            h('div', { className: 'dsx-rate-meta' }, 'DeepSeek bills Mon–Fri, China holidays excluded')
+          )
+        ),
+        total > 0
+          ? h('div', { className: 'dsx-rate-split' },
+              h('div', { className: 'dsx-rate-label' }, 'Spend by rate'),
+              h('div', {
+                className: 'dsx-rate-split-bar',
+                role: 'img',
+                'aria-label': `Peak ${fmtPct(peakShare)} of spend, off-peak ${fmtPct(100 - peakShare)}.`,
+              },
+                h('div', { className: 'dsx-rate-split-seg peak', style: { width: `${peakShare}%` } }),
+                h('div', { className: 'dsx-rate-split-seg off', style: { width: `${100 - peakShare}%` } })
+              ),
+              h('div', { className: 'dsx-rate-split-legend' },
+                h('span', {}, 'Peak ', h('b', {}, fmtUsd(spend.peakUsd)), ` · ${fmtPct(peakShare)} of spend`),
+                h('span', {}, 'Off-peak ', h('b', {}, fmtUsd(spend.offPeakUsd))),
+                h('span', {}, 'Peak premium ', h('b', {}, fmtUsd(spend.peakPremiumUsd)), ' vs off-peak rates')
+              )
+            )
+          : null,
+        h('div', { className: 'dsx-week' },
+          h('div', { className: 'dsx-week-axis' },
+            h('span', {}, 'Next 7 days'),
+            h('div', { className: 'dsx-week-axis-track' },
+              ['00', '06', '12', '18', '24'].map((hour) => h('span', { key: hour }, hour))
+            ),
+            h('span', { style: { textAlign: 'right' } }, 'Peak hours')
+          ),
+          view.week.map((day) => h('div', { key: day.key, className: `dsx-week-row${day.today ? ' is-today' : ''}` },
+            h('span', { className: 'dsx-week-day' }, day.today ? `${day.label} ${day.date} · today` : `${day.label} ${day.date}`),
+            h('div', { className: 'dsx-week-track' },
+              day.segments.map((segment, index) => h('span', {
+                key: index,
+                className: 'dsx-week-seg',
+                style: { left: `${segment.left}%`, width: `${segment.width}%` },
+              })),
+              day.today ? h('span', { className: 'dsx-week-now', style: { left: `${view.nowPct}%` } }) : null
+            ),
+            h('span', { className: 'dsx-week-meta' }, day.meta)
+          ))
+        ),
+        h('p', { className: 'dsx-note' },
+          'DeepSeek bills peak rates at 01:00–04:00 and 06:00–10:00 UTC, Monday–Friday, excluding Chinese public holidays; every other hour is off-peak at half the peak rate. ',
+          windowsText ? `In ${view.timeZone} that is ${windowsText}. ` : '',
+          h('a', { href: 'https://api-docs.deepseek.com/quick_start/pricing', target: '_blank', rel: 'noreferrer' }, 'Source'),
+          '.'
+        )
+      );
     }
 
     function readBudget() {
@@ -749,6 +1089,7 @@ window.__ModuleLoader__.load({
 
     function CostSection({ totals, pricing }) {
       const cost = totals.cost;
+      const windowsText = pricing.schedule ? upcomingWindowText(pricing.schedule, Date.now()) : null;
       const rows = [
         { key: 'out', label: 'Output', value: cost.outputUsd, tokens: totals.tokens.output },
         { key: 'cache', label: 'Cache read', value: cost.cacheUsd, tokens: totals.tokens.cacheRead },
@@ -780,7 +1121,8 @@ window.__ModuleLoader__.load({
         ))),
         h('p', { className: 'dsx-note' },
           `Estimated with DeepSeek list rates for ${pricing.models.length ? pricing.models.map(modelLabel).join(', ') : 'the active model'}. `,
-          'Peak hours are 01:00–04:00 and 06:00–10:00 UTC on weekdays; peak rates are double. ',
+          'Peak hours are 01:00–04:00 and 06:00–10:00 UTC, Monday–Friday, excluding Chinese public holidays; peak rates are double. ',
+          windowsText ? `In ${pricing.schedule.timeZone} that is ${windowsText}. ` : '',
           h('a', { href: 'https://api-docs.deepseek.com/quick_start/pricing', target: '_blank', rel: 'noreferrer' }, 'List pricing'),
           '. Excludes search, fetch, and taxes.'
         )
@@ -1103,6 +1445,7 @@ window.__ModuleLoader__.load({
           ),
           state.error ? h('div', { className: 'dsx-banner' }, `Live refresh failed: ${state.error}`) : null,
           h(Ledger, { totals, budget: budgetData, pricing }),
+          h(RateClock, { pricing }),
           h('div', { className: 'dsx-grid-main' },
             h(TimelineSection, { data, mode, setMode }),
             h(BudgetSection, {

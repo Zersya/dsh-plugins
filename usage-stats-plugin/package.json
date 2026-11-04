@@ -1,9 +1,9 @@
 {
   "name": "@local/dsh-usage-stats",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
-  "description": "Live token, cost, budget, conversation, and CPU statistics for the Harness.",
+  "description": "Live token, cost, budget, conversation, and CPU statistics for the Harness, with a DeepSeek peak/off-peak rate clock in your timezone.",
   "license": "MIT",
   "exports": {
     ".": "./index.js",
