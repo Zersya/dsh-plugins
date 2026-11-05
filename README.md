@@ -1,6 +1,6 @@
 # DSH plugins
 
-Four UI plugins for [DeepSeek Harness](https://github.com/deepseek-ai) (DSH), the
+Five UI plugins for [DeepSeek Harness](https://github.com/deepseek-ai) (DSH), the
 agent harness behind the DeepSeek desktop and web clients. All are plain DSH
 bundles: a `package.json` manifest, a `cordis.patch.yml` row insert, a Host half
 (`index.js`) and a Client half (`client.js`) that the Web client's module loader
@@ -12,6 +12,11 @@ injects into a slot.
 | [`git-graph-plugin`](git-graph-plugin) | `@local/git-graph` | A Git history View inside each conversation: commit lanes, branches, tags, and the working tree of the session's own directory or worktree. |
 | [`usage-stats-plugin`](usage-stats-plugin) | `@local/dsh-usage-stats` | A usage ledger page: token composition, estimated spend priced per provider, monthly budget, bucketed timeline, per-conversation rows, CPU telemetry, a DeepSeek peak/off-peak rate clock, and a live Command Code plan counter. |
 | [`token-farm-plugin`](token-farm-plugin) | `@local/dsh-token-bloom` | Token Farm: a pastel 3D farm that levels up, unlocks crops, and grows wildlife from the same usage numbers. |
+| [`video-preview-plugin`](video-preview-plugin) | `@local/dsh-video-preview` | Inline playback for video files in the right Sidebar's **Files** panel — the previewer it was missing for `.mp4`, `.m4v`, `.webm`, `.mov`, `.ogv`, and `.mkv`. |
+
+Video Preview is the smallest of the five and browser-only: it registers a
+document previewer for the Files panel and plays the bytes that panel already
+delivers, so it adds no Host route, no config key, and no network call.
 
 Almost none of it touches the network. Canvas boards and farms autosave to
 browser `localStorage`; the Git Graph reads the session directory with read-only
@@ -41,7 +46,8 @@ bundles. From a checkout of this repo:
        "@local/engineering-canvas": "link:/absolute/path/to/engineering-canvas-plugin",
        "@local/git-graph": "link:/absolute/path/to/git-graph-plugin",
        "@local/dsh-usage-stats": "link:/absolute/path/to/usage-stats-plugin",
-       "@local/dsh-token-bloom": "link:/absolute/path/to/token-farm-plugin"
+       "@local/dsh-token-bloom": "link:/absolute/path/to/token-farm-plugin",
+       "@local/dsh-video-preview": "link:/absolute/path/to/video-preview-plugin"
      },
      "dsh": {
        "profile": {
@@ -51,7 +57,8 @@ bundles. From a checkout of this repo:
            "@local/engineering-canvas",
            "@local/git-graph",
            "@local/dsh-usage-stats",
-           "@local/dsh-token-bloom"
+           "@local/dsh-token-bloom",
+           "@local/dsh-video-preview"
          ]
        }
      }
@@ -113,6 +120,13 @@ and `client.js` the View.
 `usage-stats-plugin` is hand-written in two halves: `index.js` folds session logs,
 prices each response from its provider's own rate card, reads the optional account
 counter, and serves three JSON routes; `client.js` renders the page and polls them.
+
+`video-preview-plugin` is client-only as well: `index.js` is an empty Host half,
+and `client.js` registers one `ctx.documentPreviews` implementation (`id`
+`video`) plus its body in the keyed `sidebar.right.tab.document` slot. It claims
+its suffixes with `priority: 'extension'`, which is what makes it beat the text
+preview's fallback band, and it declares `loading: 'bytes-complete'` so the
+document owner hands it the file's bytes to play from a Blob URL.
 
 `token-farm-plugin` is client-only (`index.js` is an empty Host half). `client.js`
 is one self-contained module: React from the module loader, a hand-rolled canvas
