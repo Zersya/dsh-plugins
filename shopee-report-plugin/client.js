@@ -25,10 +25,22 @@ window.__ModuleLoader__.load({
     .sr-title{margin:0;font-size:19px;line-height:1.3;font-weight:600;letter-spacing:-.012em}
     .sr-sub{margin-top:5px;color:var(--dsw-alias-label-secondary);font-size:12px}
     .sr-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:2px}
-    .sr-select,.sr-btn{font:inherit;font-size:12.5px;line-height:1;border-radius:9px;padding:8px 12px;cursor:pointer;
+    .sr-btn{font:inherit;font-size:12.5px;line-height:1;border-radius:9px;padding:8px 12px;cursor:pointer;
       transition:background .12s ease,border-color .12s ease,opacity .12s ease}
-    .sr-select{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2)}
-    .sr-select:hover{background:var(--dsw-alias-interactive-bg-hover)}
+    .sr-dd{position:relative}
+    .sr-dd-btn{display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:12.5px;line-height:1;padding:8px 12px;
+      border-radius:9px;cursor:pointer;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);
+      border:1px solid var(--dsw-alias-border-l2);transition:background .12s ease,border-color .12s ease}
+    .sr-dd-btn:hover{background:var(--dsw-alias-interactive-bg-hover);border-color:var(--dsw-alias-border-l3,var(--dsw-alias-border-l2))}
+    .sr-dd-caret{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;
+      border-top:5px solid var(--dsw-alias-label-secondary)}
+    .sr-dd-list{position:absolute;right:0;top:calc(100% + 6px);z-index:20;min-width:150px;max-height:260px;overflow:auto;
+      padding:5px;border-radius:11px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l2);
+      box-shadow:0 10px 28px #00000040}
+    .sr-dd-item{display:block;width:100%;text-align:left;font:inherit;font-size:12.5px;padding:8px 10px;border-radius:7px;
+      border:0;background:transparent;color:var(--dsw-alias-label-primary);cursor:pointer;font-variant-numeric:tabular-nums}
+    .sr-dd-item:hover{background:var(--dsw-alias-interactive-bg-hover)}
+    .sr-dd-item[aria-selected="true"]{background:var(--dsw-alias-interactive-bg-hover);font-weight:600}
     .sr-btn{background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground);border:1px solid transparent;font-weight:550}
     .sr-btn:hover:not([disabled]){opacity:.88}
     .sr-btn[disabled]{opacity:.5;cursor:default}
@@ -131,10 +143,73 @@ window.__ModuleLoader__.load({
       idle: 'var(--dsw-alias-label-tertiary)',
     }
 
+    function DatePicker({ value, days, onChange }) {
+      const [open, setOpen] = useState(false)
+      const boxRef = React.useRef(null)
+      useEffect(() => {
+        if (!open) return
+        const onDoc = (ev) => { if (boxRef.current && !boxRef.current.contains(ev.target)) setOpen(false) }
+        document.addEventListener('mousedown', onDoc)
+        return () => document.removeEventListener('mousedown', onDoc)
+      }, [open])
+      const list = (days || []).slice().reverse()
+      return h('div', { className: 'sr-dd', ref: boxRef },
+        h('button', {
+          className: 'sr-dd-btn', 'aria-haspopup': 'listbox', 'aria-expanded': open,
+          onClick: () => setOpen((v) => !v),
+        }, h('span', null, value || 'pilih tanggal'), h('span', { className: 'sr-dd-caret' })),
+        open ? h('div', { className: 'sr-dd-list', role: 'listbox' },
+          ...list.map((d) => h('button', {
+            key: d, role: 'option', 'aria-selected': d === value, className: 'sr-dd-item',
+            onClick: () => { setOpen(false); onChange(d) },
+          }, d))) : null)
+    }
+
     function Pill({ tone, children }) {
       return h('span', { className: 'sr-pill' },
         h('span', { className: 'sr-dot', style: { background: TONE_VAR[tone] || TONE_VAR.idle } }),
         h('span', null, children))
+    }
+
+    function CampaignTable({ rows, campaignsAvailable }) {
+      const empty = h('tr', null,
+        h('td', { colSpan: 8, style: { padding: '18px 14px', color: 'var(--dsw-alias-label-secondary)' } },
+          campaignsAvailable === false
+            ? 'Data per campaign belum bisa diambil (parser DOM perlu diperbaiki). Total iklan tetap akurat dari API.'
+            : 'Belum ada campaign aktif pada tanggal ini.'))
+
+      const body = rows.length
+        ? rows.map((c, i) => h('tr', { key: i },
+            h('td', null,
+              h('div', { className: 'sr-name', title: c.name }, c.name),
+              h('div', { className: 'sr-tag' },
+                [c.type, c.budget ? 'budget ' + rp(c.budget) : 'budget tak terbatas', c.targetRoas ? 'target ' + c.targetRoas : '']
+                  .filter(Boolean).join(' · '))),
+            h('td', { className: 'sr-r' }, rp(c.spend)),
+            h('td', { className: 'sr-r' }, rp(c.sales)),
+            h('td', { className: 'sr-r' }, r2(c.roas)),
+            h('td', { className: 'sr-r' }, r2(c.beRoas)),
+            h('td', { className: 'sr-r' }, pct(c.cmPct)),
+            h('td', { className: 'sr-r sr-strong' }, (c.profit >= 0 ? '\u25B2 ' : '\u25BC ') + rp(Math.abs(c.profit))),
+            h('td', null, h(Pill, { tone: c.tone }, c.label))))
+        : [empty]
+
+      return h('div', null,
+        h('div', { className: 'sr-sec' }, 'Per campaign', h('small', null, 'laba = penjualan × margin − biaya iklan')),
+        h('div', { className: 'sr-box' },
+          h('div', { className: 'sr-scroll' },
+            h('table', { className: 'sr-t' },
+              h('thead', null,
+                h('tr', null,
+                  h('th', null, 'Campaign'),
+                  h('th', { className: 'sr-r' }, 'Biaya'),
+                  h('th', { className: 'sr-r' }, 'Penjualan'),
+                  h('th', { className: 'sr-r' }, 'ROAS'),
+                  h('th', { className: 'sr-r' }, 'Break-even'),
+                  h('th', { className: 'sr-r' }, 'Margin'),
+                  h('th', { className: 'sr-r' }, 'Laba'),
+                  h('th', null, 'Status'))),
+              h('tbody', null, ...body)))))
     }
 
     function Spark({ rows }) {
@@ -245,11 +320,12 @@ window.__ModuleLoader__.load({
               h('h1', { className: 'sr-title' }, 'Laporan Shopee · mamicleo_id'),
               h('div', { className: 'sr-sub' },
                 `Data ${state.date} · `,
-                state.sync?.finishedAt ? `sync terakhir ${new Date(state.sync.finishedAt).toLocaleString('id-ID')}` : 'belum pernah sync',
+                state.sync?.finishedAt
+                  ? `sync terakhir ${new Date(state.sync.finishedAt).toLocaleString('id-ID')}`
+                  : day?.syncAt ? `sync terakhir ${new Date(day.syncAt).toLocaleString('id-ID')}` : 'belum pernah sync',
                 day?.partial ? ' · data sebagian' : '')),
             h('div', { className: 'sr-controls' },
-              h('select', { className: 'sr-select', value: date, onChange: (e) => { setDate(e.target.value); load(e.target.value).catch(() => {}) } },
-                ...(state.days || []).slice().reverse().map((d) => h('option', { key: d, value: d }, d))),
+              h(DatePicker, { value: date, days: state.days, onChange: (d) => { setDate(d); load(d).catch(() => {}) } }),
               h('button', { className: 'sr-btn', disabled: busy || running, onClick: sync }, running ? 'Menyinkronkan…' : 'Sync sekarang'),
               running ? h(Pill, { tone: 'warn' }, 'sync berjalan') : null,
               error ? h(Pill, { tone: 'bad' }, error) : null)),
@@ -258,29 +334,21 @@ window.__ModuleLoader__.load({
             h(Card, { label: 'Penjualan', value: rp(store?.sales ?? sales), note: `${num(store?.orders ?? ads?.orders)} pesanan · AOV ${rp(store?.aov)}` }),
             h(Card, { label: 'Biaya iklan', value: rp(spend), note: `ROAS ${r2(roas)} · ACOS ${pct(acos)}` }),
             h(Card, { label: 'Laba iklan*', value: rp(Math.abs(adProfit)), trend: adProfit >= 0 ? '▲' : '▼', note: `margin ${pct(blendedCm)} campuran · sebelum biaya tetap` }),
-            h(Card, { label: 'Pembatalan', value: num(canc?.count ?? 0), note: rp(canc?.value ?? 0) + ' refund' }),
+            h(Card, {
+              label: 'Pembatalan',
+              value: canc?.available === false ? '—' : num(canc?.count ?? 0),
+              note: canc?.available === false ? 'belum tersedia (parser)' : rp(canc?.value ?? 0) + ' refund',
+            }),
             h(Card, { label: 'Saldo iklan', value: rp(day?.wallet?.balance), note: `terpakai hari ini ${rp(day?.wallet?.spentToday)}` }),
             h(Card, { label: 'Pengunjung', value: num(store?.visitors), note: `konversi ${pct(store?.conversionPct, 2)}` })),
 
-          h('div', { className: 'sr-sec' }, 'Per campaign', h('small', null, 'laba = penjualan × margin − biaya iklan')),
-          h('div', { className: 'sr-box' },
-            h('div', { className: 'sr-scroll' },
-            h('table', { className: 'sr-t' },
-              h('thead', null, h('tr', null,
-                h('th', null, 'Campaign'), h('th', { className: 'sr-r' }, 'Biaya'), h('th', { className: 'sr-r' }, 'Penjualan'),
-                h('th', { className: 'sr-r' }, 'ROAS'), h('th', { className: 'sr-r' }, 'Break-even'), h('th', { className: 'sr-r' }, 'Margin'), h('th', { className: 'sr-r' }, 'Laba'), h('th', null, 'Status'))),
-              h('tbody', null, ...campaignRows.map((c, i) => h('tr', { key: i },
-                h('td', null, h('div', { className: 'sr-name', title: c.name }, c.name), h('div', { className: 'sr-tag' }, [c.type, c.budget ? 'budget ' + rp(c.budget) : 'budget tak terbatas', c.targetRoas ? 'target ' + c.targetRoas : ''].filter(Boolean).join(' · '))),
-                h('td', { className: 'sr-r' }, rp(c.spend)),
-                h('td', { className: 'sr-r' }, rp(c.sales)),
-                h('td', { className: 'sr-r' }, r2(c.roas)),
-                h('td', { className: 'sr-r' }, r2(c.beRoas)),
-                h('td', { className: 'sr-r' }, pct(c.cmPct)),
-                h('td', { className: 'sr-r sr-strong' }, (c.profit >= 0 ? '▲ ' : '▼ ') + rp(Math.abs(c.profit))),
-                h('td', null, h(Pill, { tone: c.tone }, c.label)))))))),
+          h(CampaignTable, { rows: campaignRows, campaignsAvailable: ads?.campaignsAvailable }),
 
-          h('div', { className: 'sr-sec' }, 'Tren 14 hari', h('small', null, 'biru = penjualan, kuning = biaya iklan')),
-          h('div', { className: 'sr-box', style: { padding: '10px 12px' } }, h(Spark, { rows: state.summaries || [] })),
+          h('div', { className: 'sr-sec' }, 'Tren 14 hari', h('small', null, 'biru = penjualan, oranye = biaya iklan')),
+          (state.summaries || []).length >= 3
+            ? h('div', { className: 'sr-box' }, h(Spark, { rows: state.summaries || [] }))
+            : h('div', { className: 'sr-box' }, h('div', { style: { padding: '20px 16px', color: 'var(--dsw-alias-label-secondary)', fontSize: '12.5px' } },
+                `Baru ada ${(state.summaries || []).length} hari data. Grafik muncul setelah 3 hari — sync otomatis berjalan 3× sehari.`)),
 
           canc?.items?.length ? h(Cancellations, { canc }) : null,
 

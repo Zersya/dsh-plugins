@@ -12,22 +12,22 @@ import path from 'node:path'
 import { spawn } from 'node:child_process'
 
 const here = path.dirname(new URL(import.meta.url).pathname)
-const dataDir = args0.get('data-dir') || process.env.SHOPEE_DATA_DIR || path.resolve(here, '..', 'data')
-const args0 = new Map(process.argv.slice(2).map((a) => { const [k, ...v] = a.replace(/^--/, '').split('='); return [k, v.join('=') || 'true'] }))
-const args = args0
+const argv = new Map(process.argv.slice(2).map((a) => { const [k, ...v] = a.replace(/^--/, '').split('='); return [k, v.join('=') || 'true'] }))
+const dataDir = argv.get('data-dir') || process.env.SHOPEE_DATA_DIR || path.resolve(here, '..', 'data')
+const date = argv.get('date') || null
+const space = argv.get('task-space') || process.env.EGO_TASK_SPACE || 'shopee-ads-daily'
+const dry = argv.has('dry')
 const wibNow = new Date(Date.now() + 7 * 3600e3)
 const wibToday = wibNow.toISOString().slice(0, 10)
 // Sebelum 02:00 WIB, "closing run" menutup hari sebelumnya, bukan hari yang baru 2 jam.
 const closingWindow = wibNow.getUTCHours() < 2
 const defaultDate = closingWindow ? new Date(Date.now() + 7 * 3600e3 - 86400e3).toISOString().slice(0, 10) : wibToday
-const date = args.get('date') || defaultDate
-const space = args.get('task-space') || process.env.EGO_TASK_SPACE || 'shopee-ads-daily'
-const dry = args.has('dry')
+const finalDate = date || defaultDate
 
-if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { console.error('format --date harus YYYY-MM-DD'); process.exit(2) }
+if (!/^\d{4}-\d{2}-\d{2}$/.test(finalDate)) { console.error('format --date harus YYYY-MM-DD'); process.exit(2) }
 
 const src = fs.readFileSync(path.join(here, 'collector.mjs'), 'utf8')
-  .replaceAll('__SR_DATE__', date)
+  .replaceAll('__SR_DATE__', finalDate)
   .replaceAll('__SR_SPACE__', space)
 
 const child = spawn('ego-browser', ['nodejs'], { stdio: ['pipe', 'pipe', 'pipe'] })
@@ -59,11 +59,11 @@ payload.syncAt = new Date().toISOString()
 if (dry) { console.log(JSON.stringify(payload, null, 2)); process.exit(0) }
 
 await fsp.mkdir(path.join(dataDir, 'days'), { recursive: true })
-const file = path.join(dataDir, 'days', `${date}.json`)
+const file = path.join(dataDir, 'days', `${finalDate}.json`)
 await fsp.writeFile(file, JSON.stringify(payload, null, 2) + '\n')
 await fsp.writeFile(path.join(dataDir, 'latest.json'), JSON.stringify(payload, null, 2) + '\n')
 
 const rp = (v) => (v == null ? '–' : 'Rp' + Math.round(v).toLocaleString('id-ID'))
-console.log([`sync ${date}`, `iklan ${rp(payload.ads?.spend)} → ${rp(payload.ads?.sales)} (ROAS ${payload.ads?.roas ?? '–'})`,
+console.log([`sync ${finalDate}`, `iklan ${rp(payload.ads?.spend)} → ${rp(payload.ads?.sales)} (ROAS ${payload.ads?.roas ?? '–'})`,
   `pesanan ${payload.store?.orders ?? payload.ads?.orders ?? '–'}`, `batal ${payload.cancellations?.count ?? 0} (${rp(payload.cancellations?.value)})`,
   payload.partial ? 'PARTIAL' : 'lengkap', payload.errors?.length ? 'err:' + payload.errors.length : ''].filter(Boolean).join(' · '))

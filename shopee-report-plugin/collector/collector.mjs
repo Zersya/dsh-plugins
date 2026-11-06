@@ -11,7 +11,7 @@ const out = {
   schema: 1, shop: 'mamicleo_id', date: DATE, timezone: 'Asia/Jakarta',
   capturedAt: new Date().toISOString().replace('Z', WIB).replace(/(\d{2}):(\d{2})\.\d{3}/, '$1:$2'),
   partial: false, store: null, ads: null, wallet: null,
-  cancellations: { count: 0, value: 0, items: [] }, orders: null, errors,
+  cancellations: { count: 0, value: 0, items: [], available: false }, orders: null, errors,
 }
 const start = Math.floor(Date.parse(DATE + 'T00:00:00' + WIB) / 1000)
 const end = start + 86399
@@ -61,68 +61,88 @@ try {
   out.wallet = { balance: Math.round(d.ads_credit.available / 1e5), spentToday: Math.round(d.ads_expense_today.total / 1e5) }
 } catch (e) { errors.push('wallet:' + String(e.message || e).slice(0, 100)) }
 
-/* 2. per-campaign table (DOM, today/yesterday only) */
+/* 2. per-campaign table (DOM; polling + header-driven mapping) */
+const poll = async (fn, { timeout = 20000, interval = 600 } = {}) => {
+  const t0 = Date.now()
+  while (Date.now() - t0 < timeout) {
+    try { const v = await page.evaluate(fn); if (v) return v } catch (e) { /* keep polling */ }
+    await page.waitForTimeout(interval)
+  }
+  return null
+}
+
 if (out.ads && (DATE === todayStr || DATE === yestStr)) {
   try {
     await page.goto('https://seller.shopee.co.id/portal/marketing/pas/index', { timeout: 90000 }).catch(() => {})
-    await page.waitForTimeout(4500)
+    await poll(() => document.querySelectorAll('.eds-tabs__nav-tab').length >= 2, { timeout: 25000 })
     await page.evaluate(() => {
       const tab = [...document.querySelectorAll('.eds-tabs__nav-tab')].find((e) => (e.innerText || '').includes('Individual'))
       if (tab) { tab.scrollIntoView({ block: 'center' }); tab.click() }
     })
-    await page.waitForTimeout(3000)
+    await page.waitForTimeout(1500)
+
     const want = DATE === todayStr ? 'Hari Ini' : 'Kemarin'
-    const label = await page.evaluate((w) => {
-      const el = [...document.querySelectorAll('p,div,span')].find((e) => new RegExp('^' + w + ' \\(GMT\\+7\\)$').test((e.innerText || '').trim()))
-        || [...document.querySelectorAll('p,div,span')].find((e) => /\\(GMT\+7\\)$/.test((e.innerText || '').trim()))
-      if (!el) return ''
-      if (!el.innerText.trim().startsWith(w)) { el.click(); return 'opened' }
-      return 'already:' + el.innerText.trim()
+    await page.evaluate((w) => {
+      const lbl = [...document.querySelectorAll('p,div,span')]
+        .find((e) => new RegExp('^' + w + ' \\(GMT\\+7\\)$').test((e.innerText || '').trim()))
+        || [...document.querySelectorAll('p,div,span')].find((e) => /^\(GMT\+7\)$/.test((e.innerText || '').trim()))
+      if (lbl && !new RegExp('^' + w).test(lbl.innerText.trim())) lbl.click()
     }, want)
-    if (label === 'opened') {
-      await page.waitForTimeout(1200)
-      await page.evaluate((w) => {
-        const el = [...document.querySelectorAll('div,span,li,p')].find((e) => (e.innerText || '').trim() === w)
-        if (el) el.click()
-      }, want)
-      await page.waitForTimeout(4500)
-    }
-    const parsed = await page.evaluate(() => {
-      const body = (document.body.innerText || '').split('\n').map((s) => s.trim())
-      const names = []
-      for (const tr of document.querySelectorAll('tr')) {
-        const t = (tr.innerText || '').replace(/\s+/g, ' ').trim()
-        if (!/GMV Max/.test(t)) continue
-        const m = t.match(/^(.+?) Iklan Produk GMV Max (Auto|ROAS) (Tidak Terbatas|[\d\/]+ - [\d\/]+) (Berjalan|Nonaktif|Berakhir|Dijadwalkan)/)
-        names.push(m ? { name: m[1], type: 'GMV Max ' + m[2], status: m[4] } : { name: t.slice(0, 80), type: '', status: '' })
+    await page.waitForTimeout(1200)
+    await page.evaluate((w) => {
+      const opt = [...document.querySelectorAll('div,span,li,p')].find((e) => (e.innerText || '').trim() === w)
+      if (opt) opt.click()
+    }, want)
+
+    const table = await poll(() => {
+      const headerRow = [...document.querySelectorAll('tr')].find((tr) => /Biaya Iklan/.test(tr.innerText || '') && /ROAS/.test(tr.innerText || ''))
+      const nameRows = [...document.querySelectorAll('tr')].filter((tr) => /GMV Max/.test(tr.innerText || '') && (tr.innerText || '').length < 400)
+      if (!headerRow || !nameRows.length) return null
+      const headers = [...headerRow.querySelectorAll('td,th')].map((c) => (c.innerText || '').split('\n')[0].trim()).filter(Boolean)
+      const metricRows = [...document.querySelectorAll('tr')].filter((tr) => tr.querySelectorAll('td').length >= 8 && /Rp/.test(tr.innerText || ''))
+      const rows = []
+      for (let i = 0; i < nameRows.length; i++) {
+        const nameCells = [...nameRows[i].querySelectorAll('td')].map((c) => (c.innerText || '').replace(/\s+/g, ' ').trim())
+        const metricTr = metricRows[i]
+        if (!metricTr) continue
+        const values = [...metricTr.querySelectorAll('td')].map((c) => (c.innerText || '').split('\n')[0].replace(/\s+/g, ' ').trim())
+        const mapped = {}
+        headers.forEach((h, idx) => { mapped[h] = values[idx] })
+        rows.push({ nameCells, mapped })
       }
-      const nums = []
-      const i = body.findIndex((x) => /^Daftar Iklan Produk$/.test(x))
-      for (let j = i; j < body.length; j++) {
-        const v = body[j]
-        if (/^Rp[\d.]+$/.test(v) || /^[\d.,]+%$/.test(v) || /^\d{1,3}(\.\d{3})*$/.test(v) || /^(Tidak Terbatas|[\d.,]+\s*~\s*[\d.,]+)$/.test(v)) nums.push(v)
-      }
-      return { names, nums }
-    })
-    const n = parsed.nums
-    const rows = []
-    let p = 0
-    for (const meta of parsed.names) {
-      let budget = null
-      const grabMoney = () => { while (p < n.length && !/^Rp/.test(n[p])) p++; return n[p++] }
-      // per row the sequence starts with budget/target sometimes captured in nums; skip until first Rp
-      const spend = grabMoney(); const sales = grabMoney()
-      const roas = n[p++] || '0'; const imp = n[p++] || '0'; const clicks = n[p++] || '0'
-      const ctr = n[p++] || '0%'; const conv = n[p++] || '0'; const sold = n[p++] || '0'
-      const acos = n[p++] || '0%'; const cpo = n[p++] || '-'
-      const pi = (v) => Number(String(v).replace(/[^\d]/g, '')) || 0
-      rows.push({ ...meta, targetRoas: null, budget, spend: pi(spend), sales: pi(sales), roas: Number(String(roas).replace(',', '.')) || 0,
-        clicks: pi(clicks), impressions: pi(imp), ctrPct: Number(String(ctr).replace(',', '.')) || null,
-        orders: pi(conv), productsSold: pi(sold), acosPct: Number(String(acos).replace(',', '.')) || null,
-        costPerOrder: /^Rp/.test(cpo) ? pi(cpo) : null })
+      return { headers, rows }
+    }, { timeout: 30000 })
+
+    if (!table || !table.rows.length) { errors.push('campaigns: tabel tidak ter-render'); out.partial = true; out.ads.campaignsAvailable = false }
+    else {
+      const pi = (v) => Number(String(v || '').replace(/[^\d]/g, '')) || 0
+      const pf = (v) => { const n = Number(String(v || '').replace(',', '.').replace(/[^\d.]/g, '')); return Number.isFinite(n) ? n : null }
+      out.ads.campaigns = table.rows.map(({ nameCells, mapped }) => {
+        const joined = nameCells.join(' | ')
+        const nameCell = nameCells
+          .map((t) => ({ t, score: (String(t).match(/[A-Za-z]{4,}/g) || []).join('').length }))
+          .sort((a, b) => b.score - a.score)[0]
+        return {
+          name: nameCell && nameCell.score > 6 ? nameCell.t : (nameCells[1] || ''),
+          type: (joined.match(/Iklan Produk (GMV Max (?:Auto|ROAS))/) || [null, ''])[1],
+          status: (joined.match(/(Berjalan|Nonaktif|Berakhir|Dijadwalkan)/) || [null, ''])[1],
+          budget: /Rp[\d.]+/.test(joined) ? pi((joined.match(/Rp[\d.]+/) || [''])[0]) : null,
+          targetRoas: (joined.match(/([\d.,]+)\s*~\s*([\d.,]+)/) || [])[0] || null,
+          spend: pi(mapped['Biaya Iklan']),
+          sales: pi(mapped['Penjualan']),
+          roas: pf(mapped['ROAS']),
+          clicks: pi(mapped['Jumlah Klik']),
+          impressions: pi(mapped['Iklan Dilihat']),
+          ctrPct: pf(mapped['Persentase Klik']),
+          orders: pi(mapped['Konversi']),
+          productsSold: pi(mapped['Produk Terjual']),
+          acosPct: pf(mapped['Persentase Biaya Iklan (ACOS)']),
+          costPerOrder: pi(mapped['Biaya per Konversi']),
+        }
+      }).filter((r) => r.spend > 0 || r.sales > 0)
+      out.ads.campaignsAvailable = out.ads.campaigns.length > 0
     }
-    out.ads.campaigns = rows.filter((r) => r.spend > 0)
-  } catch (e) { errors.push('campaigns:' + String(e.message || e).slice(0, 120)); out.partial = true }
+  } catch (e) { errors.push('campaigns:' + String(e.message || e).slice(0, 120)); out.partial = true; out.ads.campaignsAvailable = false }
 }
 
 /* 3. store real-time totals (today only) */
@@ -154,34 +174,46 @@ if (DATE === todayStr) {
 /* 4. cancellations / refunds for the date */
 try {
   await page.goto('https://seller.shopee.co.id/portal/sale/returnrefundcancel', { timeout: 90000 }).catch(() => {})
-  await page.waitForTimeout(9000)
-  const items = await page.evaluate((target) => {
-    const b = (document.body.innerText || '').split('\n').map((s) => s.trim()).filter(Boolean)
+  await poll(() => {
+    const btn = [...document.querySelectorAll('button')].find((b) => /Mengerti/i.test(b.innerText || ''))
+    if (btn) { btn.click(); return true }
+    return document.querySelectorAll('tr').length > 3 || (document.body.innerText || '').includes('Pengajuan')
+  }, { timeout: 20000 })
+
+  const items = await poll((target) => {
+    const b = (document.body.innerText || '').split('\n').map((x) => x.trim()).filter(Boolean)
     const idx = []
-    b.forEach((l, i) => { if (l === 'No. Pesanan') idx.push(i) })
-    const blocks = idx.map((i, k) => b.slice(Math.max(0, i - 2), idx[k + 1] !== undefined ? idx[k + 1] : Math.min(b.length, i + 30)))
+    b.forEach((l, i) => { if (/^No\.\s*Pesanan$/.test(l)) idx.push(i) })
+    if (!idx.length) return null
     const res = []
-    for (const bl of blocks) {
-      const joined = bl.join(' | ')
-      if (!joined.includes(target)) continue
-      const order = bl[bl.indexOf('No. Pesanan') + 1] || ''
-      const refundLine = bl.find((x) => /^Rp[\d.]+$/.test(x)) || ''
-      const reasonIdx = bl.findIndex((x) => /Ingin mengubah|Barang tidak|Rusak|Salah|Berubah pikiran|Tidak sesuai/i.test(x))
+    for (let k = 0; k < idx.length; k++) {
+      const i = idx[k]
+      const stop = idx[k + 1] !== undefined ? idx[k + 1] : Math.min(b.length, i + 32)
+      const bl = b.slice(Math.max(0, i - 2), stop)
+      if (!bl.join(' | ').includes(target)) continue
+      const orderIdx = bl.findIndex((x) => /^No\.\s*Pesanan$/.test(x))
+      const refund = bl.find((x) => /^Rp[\d.]+$/.test(x)) || ''
+      const reason = bl.find((x) => /Ingin mengubah|Barang tidak|Rusak|Salah|Berubah pikiran|Tidak sesuai|Stok habis/i.test(x)) || ''
       res.push({
-        order, buyer: bl[0] === '-' ? bl[1] : bl[0],
-        product: (bl.find((x) => /[A-Za-z]{6,}/.test(x) && !/Pengembalian|Kompensasi|Total|Ingin|Dana|Dibatalkan|SPX/.test(x)) || '').slice(0, 90),
-        refund: Number(refundLine.replace(/[^\d]/g, '')) || 0,
-        reason: reasonIdx >= 0 ? bl[reasonIdx] : '', solution: '',
+        order: (bl[orderIdx + 1] || '').trim(),
+        buyer: bl[0] === '-' ? bl[1] : bl[0],
+        product: (bl.find((x) => /[A-Za-z]{6,}/.test(x) && !/Pengembalian|Kompensasi|Total|Ingin|Dana|Dibatalkan|SPX|Variasi|Pre-Order|Mengerti/i.test(x)) || '').slice(0, 90),
+        refund: Number(refund.replace(/[^\d]/g, '')) || 0,
+        reason,
+        solution: bl.find((x) => /Pengembalian dana|Kirim ulang|Tolak/i.test(x)) || '',
         status: bl.find((x) => /Dana Dikembalikan|Dalam Pengecekan|Sedang Dikembalikan|Ditolak/i.test(x)) || '',
         cancelledAt: target,
       })
     }
     return res
-  }, dmy)
-  out.cancellations.items = items
-  out.cancellations.count = items.length
-  out.cancellations.value = items.reduce((a, c) => a + (c.refund || 0), 0)
-} catch (e) { errors.push('cancellations:' + String(e.message || e).slice(0, 120)); out.partial = true }
+  }, { timeout: 25000 })
+
+  const seen = new Set()
+  out.cancellations.items = (items || []).filter((it) => { if (!it.order || seen.has(it.order)) return false; seen.add(it.order); return true })
+  out.cancellations.available = (items || []).length > 0
+  out.cancellations.count = out.cancellations.items.length
+  out.cancellations.value = out.cancellations.items.reduce((a, c) => a + (c.refund || 0), 0)
+} catch (e) { errors.push('cancellations:' + String(e.message || e).slice(0, 120)); out.partial = true; out.cancellations.available = false }
 
 try { await page.close() } catch (e) { /* keep space alive */ }
 console.log('###JSON###' + JSON.stringify(out))
