@@ -1,0 +1,28 @@
+{
+  "name": "@local/dsh-shopee-report",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shopee seller dashboard: daily sales, ad spend, cancellations and per-campaign profit with break-even ROAS, synced by an ego-browser collector.",
+  "license": "MIT",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "icon.svg",
+    "README.md",
+    "install.mjs",
+    "collector/collector.mjs",
+    "collector/run-sync.mjs",
+    "collector/README.md"
+  ],
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": { "platform": "web", "immediately": true, "inject": [] }
+  }
+}

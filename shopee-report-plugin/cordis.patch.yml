@@ -1,0 +1,7 @@
+# Shopee daily dashboard: Host routes (`/shopee-report/state|sync|raw`) and the
+# Client page in the sidebar. Workspace paths are optional — the defaults are
+# ~/.dsh/shopee-report/data and <plugin>/collector.
+- insert:
+    - id: shopee-report
+      name: '@local/dsh-shopee-report'
+      config: {}

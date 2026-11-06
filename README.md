@@ -1,6 +1,6 @@
 # DSH plugins
 
-Five UI plugins for [DeepSeek Harness](https://github.com/deepseek-ai) (DSH), the
+Six plugins for [DeepSeek Harness](https://github.com/deepseek-ai) (DSH), the
 agent harness behind the DeepSeek desktop and web clients. All are plain DSH
 bundles: a `package.json` manifest, a `cordis.patch.yml` row insert, a Host half
 (`index.js`) and a Client half (`client.js`) that the Web client's module loader
@@ -12,6 +12,7 @@ injects into a slot.
 | [`git-graph-plugin`](git-graph-plugin) | `@local/git-graph` | A Git history View inside each conversation: commit lanes, branches, tags, and the working tree of the session's own directory or worktree. |
 | [`usage-stats-plugin`](usage-stats-plugin) | `@local/dsh-usage-stats` | A usage ledger page: token composition, estimated spend priced per provider, monthly budget, bucketed timeline, per-conversation rows, CPU telemetry, a DeepSeek peak/off-peak rate clock, and a live Command Code plan counter. |
 | [`token-farm-plugin`](token-farm-plugin) | `@local/dsh-token-bloom` | Token Farm: a pastel 3D farm that levels up, unlocks crops, and grows wildlife from the same usage numbers. |
+| [`shopee-report-plugin`](shopee-report-plugin) | `@local/dsh-shopee-report` | A Shopee seller dashboard: daily sales and ad spend, cancellations, and per-campaign profit with break-even ROAS, filled by an ego-browser collector. |
 | [`video-preview-plugin`](video-preview-plugin) | `@local/dsh-video-preview` | Inline playback for video files in the right Sidebar's **Files** panel — the previewer it was missing for `.mp4`, `.m4v`, `.webm`, `.mov`, `.ogv`, and `.mkv`. |
 
 Video Preview is the smallest of the five and browser-only: it registers a
