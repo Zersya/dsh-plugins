@@ -95,6 +95,14 @@ window.__ModuleLoader__.load({
     .sr-bar i{width:38%;max-width:9px;border-radius:3px 3px 0 0;display:block}
     .sr-b-sales{background:var(--dsw-alias-brand-primary-new-colorprimary-new-color)}
     .sr-b-spend{background:var(--dsw-alias-state-warn-primary);opacity:.9}
+    .sr-datenav{display:inline-flex;align-items:center;gap:6px}
+    .sr-iconbtn{width:30px;height:30px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);
+      background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);cursor:pointer;font-size:16px;line-height:1}
+    .sr-iconbtn:hover:not([disabled]){background:var(--dsw-alias-interactive-bg-hover)}
+    .sr-iconbtn[disabled]{opacity:.35;cursor:default}
+    .sr-synced{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--dsw-alias-label-secondary)}
+    .sr-two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media (max-width:820px){.sr-two{grid-template-columns:1fr}}
     .sr-hint{margin:0 0 10px;font-size:11.5px;color:var(--dsw-alias-label-secondary)}
     .sr-spark-x{display:flex;justify-content:space-between;padding:6px 2px 10px;font-size:10.5px;
       letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
@@ -263,16 +271,57 @@ window.__ModuleLoader__.load({
 
       const missing = week.missing.length
       const controls = h('div', { className: 'sr-controls', style: { marginTop: 12 } },
-        h('button', { className: 'sr-btn', disabled: busy, onClick: () => onSyncWeek(missing === 0) },
-          busy ? 'Menyinkronkan…' : missing ? `Sync ${missing} hari yang belum ada` : 'Sync ulang 7 hari'),
+        missing
+          ? h('button', { className: 'sr-btn', disabled: busy, onClick: () => onSyncWeek(false) },
+              busy ? 'Menyinkronkan…' : `Sync ${missing} hari yang belum ada`)
+          : h('span', { className: 'sr-synced' },
+              h('span', { className: 'sr-dot', style: { background: 'var(--dsw-alias-state-success-primary)' } }),
+              '7 hari lengkap'),
         h('div', { className: 'sr-note', style: { marginTop: 0 } },
-          missing ? 'Hanya tanggal yang belum punya snapshot yang ditarik.' : 'Semua 7 hari sudah lengkap — tombol akan menarik ulang semuanya.'))
+          missing ? 'Hanya tanggal yang belum punya snapshot yang ditarik.' : 'Data 7 hari sudah lengkap.'))
 
       const lastResult = sync && sync.mode === 'week' && sync.message
         ? h('div', { className: 'sr-note', style: { marginTop: 6 } }, String(sync.message).split('\n').slice(-1)[0])
         : null
 
       return h('div', null, header, cards, table, controls, lastResult)
+    }
+
+    function EconomicsSection({ econ, built }) {
+      if (!econ) return null
+      const fees = econ.platformFees || {}
+      const components = fees.components || []
+      const products = (built && built.products) || []
+
+      const feeRows = components.map((c, i) => h('tr', { key: i },
+        h('td', null, c.name),
+        h('td', { className: 'sr-r' }, pct(c.pct, 2))))
+
+      const prodRows = products.map((pr, i) => h('tr', { key: i },
+        h('td', null, h('div', { className: 'sr-name', title: pr.name }, pr.name)),
+        h('td', { className: 'sr-r' }, rp((pr.hpp || 0) + (pr.pack || 0))),
+        h('td', { className: 'sr-r' }, rp(pr.price)),
+        h('td', { className: 'sr-r' }, pct(pr.cmPct)),
+        h('td', { className: 'sr-r' }, r2(pr.beRoas))))
+
+      const feeTable = h('div', { className: 'sr-box' },
+        h('table', { className: 'sr-t' },
+          h('thead', null, h('tr', null, h('th', null, 'Komponen biaya'), h('th', { className: 'sr-r' }, '% omzet'))),
+          h('tbody', null, ...feeRows)))
+
+      const prodTable = h('div', { className: 'sr-box' },
+        h('table', { className: 'sr-t' },
+          h('thead', null, h('tr', null,
+            h('th', null, 'Produk'), h('th', { className: 'sr-r' }, 'HPP'), h('th', { className: 'sr-r' }, 'Harga'),
+            h('th', { className: 'sr-r' }, 'Margin'), h('th', { className: 'sr-r' }, 'Break-even ROAS'))),
+          h('tbody', null, ...prodRows)))
+
+      return h('div', null,
+        h('div', { className: 'sr-sec' }, 'Biaya Shopee & HPP',
+          h('small', null, `fee total ${pct(fees.totalPct)} · wajib ${pct(fees.wajibPct)} · program ${pct(fees.programPct)}`)),
+        h('div', { className: 'sr-two' }, feeTable, prodTable),
+        h('div', { className: 'sr-note' },
+          'HPP bisa diubah di shopee-report/data/economics.json. ' + (fees.source || '')))
     }
 
     function Spark({ rows }) {
@@ -339,6 +388,14 @@ window.__ModuleLoader__.load({
 
       const econ = useMemo(() => buildEconomics(state?.economics), [state?.economics])
       const day = state?.day
+      const dayList = state?.days || []
+      const dayIndex = dayList.indexOf(date)
+      const prevDay = dayIndex > 0 ? dayList[dayIndex - 1] : null
+      const nextDay = dayIndex >= 0 && dayIndex < dayList.length - 1 ? dayList[dayIndex + 1] : null
+      const wibToday = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10)
+      const isToday = date === wibToday
+      const alreadySynced = !!day && !isToday
+
       const ads = day?.ads
       const store = day?.store
       const canc = day?.cancellations
@@ -398,8 +455,19 @@ window.__ModuleLoader__.load({
                   : day?.syncAt ? `sync terakhir ${new Date(day.syncAt).toLocaleString('id-ID')}` : 'belum pernah sync',
                 day?.partial ? ' · data sebagian' : '')),
             h('div', { className: 'sr-controls' },
-              h(DatePicker, { value: date, days: state.days, onChange: (d) => { setDate(d); load(d).catch(() => {}) } }),
-              h('button', { className: 'sr-btn', disabled: busy || running, onClick: sync }, running ? 'Menyinkronkan…' : 'Sync sekarang'),
+              h('div', { className: 'sr-datenav' },
+                h('button', {
+                  className: 'sr-iconbtn', 'aria-label': 'hari sebelumnya', disabled: !prevDay,
+                  onClick: () => { if (prevDay) { setDate(prevDay); load(prevDay).catch(() => {}) } },
+                }, '\u2039'),
+                h(DatePicker, { value: date, days: state.days, onChange: (d) => { setDate(d); load(d).catch(() => {}) } }),
+                h('button', {
+                  className: 'sr-iconbtn', 'aria-label': 'hari berikutnya', disabled: !nextDay,
+                  onClick: () => { if (nextDay) { setDate(nextDay); load(nextDay).catch(() => {}) } },
+                }, '\u203A')),
+              alreadySynced
+                ? h('span', { className: 'sr-synced' }, h('span', { className: 'sr-dot', style: { background: 'var(--dsw-alias-state-success-primary)' } }), 'sudah di-sync')
+                : h('button', { className: 'sr-btn', disabled: busy || running, onClick: sync }, running ? 'Menyinkronkan…' : isToday ? 'Sync sekarang' : 'Sync hari ini'),
               running ? h(Pill, { tone: 'warn' }, 'sync berjalan') : null,
               error ? h(Pill, { tone: 'bad' }, error) : null)),
 
@@ -436,6 +504,8 @@ window.__ModuleLoader__.load({
           verdicts.length ? h('div', { className: 'sr-verdict' },
             h('div', { className: 'sr-verdict-h' }, 'Yang perlu diperhatikan'),
             h('ul', null, ...verdicts.slice(0, 6).map((v, i) => h('li', { key: i, style: { marginBottom: 4 } }, v)))) : null,
+
+          h(EconomicsSection, { econ: state.economics, built: econ }),
 
           h('div', { className: 'sr-note' },
             `*Laba iklan memakai margin kontribusi setelah fee platform ${pct(econ?.feePct ?? 23.7)} dan HPP. `,
