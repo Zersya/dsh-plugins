@@ -142,7 +142,10 @@ if (out.ads && (DATE === todayStr || DATE === yestStr)) {
           .map((t) => ({ t, score: (String(t).match(/[A-Za-z]{4,}/g) || []).join('').length }))
           .sort((a, b) => b.score - a.score)[0]
         return {
-          name: nameCell && nameCell.score > 6 ? nameCell.t : (nameCells[1] || ''),
+          name: (nameCell && nameCell.score > 6 ? nameCell.t : (nameCells[1] || ''))
+            .replace(/\s+Iklan Produk GMV Max.*$/i, '')
+            .replace(/\s+Tidak Terbatas.*$/i, '')
+            .trim(),
           type: (joined.match(/Iklan Produk (GMV Max (?:Auto|ROAS))/) || [null, ''])[1],
           status: (joined.match(/(Berjalan|Nonaktif|Berakhir|Dijadwalkan)/) || [null, ''])[1],
           budget: /Rp[\d.]+/.test(joined) ? pi((joined.match(/Rp[\d.]+/) || [''])[0]) : null,

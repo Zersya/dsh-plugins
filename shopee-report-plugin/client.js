@@ -66,8 +66,10 @@ window.__ModuleLoader__.load({
 
     .sr-box{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:14px;overflow:hidden}
     .sr-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-    .sr-swipe{display:none;padding:0 14px 10px;font-size:0.75rem;color:var(--dsw-alias-label-secondary)}
-    @media (max-width:680px){.sr-swipe{display:block}}
+.sr-box{position:relative}
+    .sr-box.is-scrollable::after{content:'';position:absolute;top:0;right:0;bottom:0;width:26px;pointer-events:none;
+      background:linear-gradient(to right, transparent, var(--dsw-alias-bg-layer-1));
+      border-radius:0 13px 13px 0}
     table.sr-t{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px}
     table.sr-t th{position:sticky;top:0;z-index:1;text-align:left;font-weight:550;font-size:0.72rem;letter-spacing:.05em;
       text-transform:uppercase;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-2);
@@ -76,7 +78,8 @@ window.__ModuleLoader__.load({
     table.sr-t tbody tr:last-child td{border-bottom:0}
     table.sr-t tbody tr:hover td{background:var(--dsw-alias-interactive-bg-hover)}
     .sr-r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
-    .sr-name{font-weight:550;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .sr-name{font-weight:550;max-width:320px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+      overflow:hidden;line-height:1.35}
     .sr-tag{margin-top:3px;font-size:0.72rem;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px}
     .sr-strong{font-weight:600}
 
@@ -210,15 +213,13 @@ window.__ModuleLoader__.load({
           }, d))) : null)
     }
 
-    function TableHint() {
-      return h('div', { className: 'sr-swipe' }, 'Geser tabel ke samping untuk kolom lainnya \u2192')
-    }
-
     function Pill({ tone, children }) {
       return h('span', { className: 'sr-pill' },
         h('span', { className: 'sr-dot', style: { background: TONE_VAR[tone] || TONE_VAR.idle } }),
         h('span', null, children))
     }
+
+    const cleanName = (n) => String(n || '').replace(/\s+Iklan Produk GMV Max.*$/i, '').replace(/\s+Tidak Terbatas.*$/i, '').trim()
 
     function CampaignTable({ rows, campaignsAvailable }) {
       const empty = h('tr', null,
@@ -230,7 +231,7 @@ window.__ModuleLoader__.load({
       const body = rows.length
         ? rows.map((c, i) => h('tr', { key: i },
             h('td', null,
-              h('div', { className: 'sr-name', title: c.name }, c.name),
+              h('div', { className: 'sr-name', title: cleanName(c.name) }, cleanName(c.name)),
               h('div', { className: 'sr-tag' },
                 [c.type, c.budget ? 'budget ' + rp(c.budget) : 'budget tak terbatas', c.targetRoas ? 'target ' + c.targetRoas : '']
                   .filter(Boolean).join(' · '))),
@@ -262,7 +263,7 @@ window.__ModuleLoader__.load({
                   h('th', { scope: 'col', className: 'sr-r' }, 'Margin'),
                   h('th', { scope: 'col', className: 'sr-r' }, 'Laba'),
                   h('th', { scope: 'col' }, 'Status'))),
-              h('tbody', null, ...body))), h(TableHint)))
+              h('tbody', null, ...body)))))
     }
 
     function WeeklySection({ week, econ, onSyncWeek, busy, sync }) {
@@ -305,7 +306,7 @@ window.__ModuleLoader__.load({
               h('th', { scope: 'col', className: 'sr-r' }, 'Pesanan'),
               h('th', { scope: 'col', className: 'sr-r' }, 'Batal'),
               h('th', { scope: 'col' }, 'Status'))),
-            h('tbody', null, ...rows))), h(TableHint))
+            h('tbody', null, ...rows))))
 
       const missing = week.missing.length
       const controls = h('div', { className: 'sr-controls', style: { marginTop: 12 } },
@@ -345,14 +346,14 @@ window.__ModuleLoader__.load({
       const feeTable = h('div', { className: 'sr-box' },
         h('table', { className: 'sr-t' },
           h('thead', null, h('tr', null, h('th', { scope: 'col' }, 'Komponen biaya'), h('th', { scope: 'col', className: 'sr-r' }, '% omzet'))),
-          h('tbody', null, ...feeRows)), h(TableHint))
+          h('tbody', null, ...feeRows)))
 
       const prodTable = h('div', { className: 'sr-box' },
         h('table', { className: 'sr-t' },
           h('thead', null, h('tr', null,
             h('th', { scope: 'col' }, 'Produk'), h('th', { scope: 'col', className: 'sr-r' }, 'HPP'), h('th', { scope: 'col', className: 'sr-r' }, 'Harga'),
             h('th', { scope: 'col', className: 'sr-r' }, 'Margin'), h('th', { scope: 'col', className: 'sr-r' }, 'Break-even ROAS'))),
-          h('tbody', null, ...prodRows)), h(TableHint))
+          h('tbody', null, ...prodRows)))
 
       return h('div', null,
         h('div', { className: 'sr-sec' }, 'Biaya Shopee & HPP',
@@ -405,8 +406,14 @@ window.__ModuleLoader__.load({
       useEffect(() => { load('').catch((e) => setError(String(e.message || e))) }, [load])
       useEffect(() => {
         const running = state?.sync?.state === 'running'
-        const id = setInterval(() => { load(date).catch(() => {}) }, running ? RUNNING_POLL_MS : POLL_MS)
-        return () => clearInterval(id)
+        const tick = () => {
+          if (document.visibilityState === 'hidden') return
+          load(date).catch(() => {})
+        }
+        const id = setInterval(tick, running ? RUNNING_POLL_MS : POLL_MS)
+        const onVisible = () => { if (document.visibilityState === 'visible') load(date).catch(() => {}) }
+        document.addEventListener('visibilitychange', onVisible)
+        return () => { clearInterval(id); document.removeEventListener('visibilitychange', onVisible) }
       }, [date, load, state?.sync?.state])
 
       const sync = useCallback(async () => {
@@ -428,6 +435,21 @@ window.__ModuleLoader__.load({
           setTimeout(() => { load(date).catch(() => {}) }, 700)
         } catch (e) { setError(String(e.message || e)) } finally { setBusy(false) }
       }, [date, load])
+
+      useEffect(() => {
+        const mark = () => {
+          for (const sc of document.querySelectorAll('.sr-scroll')) {
+            const box = sc.closest('.sr-box')
+            if (!box) continue
+            box.classList.toggle('is-scrollable', sc.scrollWidth > sc.clientWidth + 2)
+          }
+        }
+        mark()
+        const t1 = setTimeout(mark, 250)
+        const t2 = setTimeout(mark, 1200)
+        window.addEventListener('resize', mark)
+        return () => { clearTimeout(t1); clearTimeout(t2); window.removeEventListener('resize', mark) }
+      }, [date, state])
 
       const econ = useMemo(() => buildEconomics(state?.economics), [state?.economics])
       const day = state?.day
@@ -570,7 +592,7 @@ window.__ModuleLoader__.load({
               h('td', null, it.buyer),
               h('td', null, h('div', { className: 'sr-name', title: it.product }, it.product)),
               h('td', { className: 'sr-r' }, rp(it.refund)),
-              h('td', null, it.reason || '–')))))), h(TableHint))
+              h('td', null, it.reason || '–')))))))
     }
 
     function Icon() {
