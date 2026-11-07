@@ -102,7 +102,15 @@ export function apply(ctx, config = {}) {
     for (const d of days.slice(-21)) {
       const snap = d === date ? day : await readJson(path.join(dataDir, 'days', `${d}.json`))
       if (!snap) continue
-      summaries.push({ date: d, sales: snap.store?.sales ?? null, spend: snap.ads?.spend ?? null, roas: snap.ads?.roas ?? null, orders: snap.store?.orders ?? null, cancelled: snap.cancellations?.count ?? 0, cancelledValue: snap.cancellations?.value ?? 0 })
+      summaries.push({
+        date: d,
+        sales: snap.store?.sales ?? snap.ads?.sales ?? null,
+        spend: snap.ads?.spend ?? null,
+        roas: snap.ads?.roas ?? null,
+        orders: snap.store?.orders ?? snap.ads?.orders ?? null,
+        cancelled: snap.cancellations?.available === false ? null : (snap.cancellations?.count ?? 0),
+        cancelledValue: snap.cancellations?.value ?? 0,
+      })
     }
     const week = await buildWeek(date, days)
     return { ok: true, date, days, day, economics, summaries, week, sync: await readStatus(), running: child !== null }

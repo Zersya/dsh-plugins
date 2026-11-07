@@ -89,11 +89,14 @@ window.__ModuleLoader__.load({
     .sr-empty code{font-family:ui-monospace,SFMono-Regular,monospace;font-size:11.5px;padding:3px 7px;border-radius:7px;
       background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-label-primary)}
 
-    .sr-spark{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;height:92px;padding:14px 16px 10px;
-      border-bottom:1px solid var(--dsw-alias-border-l1)}
-    .sr-bar{flex:1 1 0;display:flex;align-items:flex-end;justify-content:center;gap:3px;min-width:6px;max-width:44px}
-    .sr-bar i{flex:1 1 0;max-width:14px;border-radius:3px 3px 1px 1px;display:block}
-    .sr-spark-x{display:flex;justify-content:space-between;padding:6px 16px 10px;font-size:10.5px;
+    .sr-spark{display:flex;align-items:flex-end;justify-content:space-between;gap:6px;height:64px;
+      border-bottom:1px solid var(--dsw-alias-border-l1);padding-bottom:2px}
+    .sr-bar{flex:1 1 0;display:flex;align-items:flex-end;justify-content:center;gap:3px;min-width:8px;max-width:46px}
+    .sr-bar i{width:38%;max-width:9px;border-radius:3px 3px 0 0;display:block}
+    .sr-b-sales{background:var(--dsw-alias-brand-primary-new-colorprimary-new-color)}
+    .sr-b-spend{background:var(--dsw-alias-state-warn-primary);opacity:.9}
+    .sr-hint{margin:0 0 10px;font-size:11.5px;color:var(--dsw-alias-label-secondary)}
+    .sr-spark-x{display:flex;justify-content:space-between;padding:6px 2px 10px;font-size:10.5px;
       letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
     .sr-note{margin-top:14px;font-size:11.5px;color:var(--dsw-alias-label-secondary);line-height:1.6}
     .sr-err{color:var(--dsw-alias-label-primary);border-left:2px solid var(--dsw-alias-state-error-primary);padding-left:10px;margin-top:8px}
@@ -173,9 +176,9 @@ window.__ModuleLoader__.load({
 
     function CampaignTable({ rows, campaignsAvailable }) {
       const empty = h('tr', null,
-        h('td', { colSpan: 9, style: { padding: '18px 14px', color: 'var(--dsw-alias-label-secondary)' } },
+        h('td', { colSpan: 9, style: { padding: '13px 14px', color: 'var(--dsw-alias-label-secondary)' } },
           campaignsAvailable === false
-            ? 'Data per campaign belum bisa diambil (parser DOM perlu diperbaiki). Total iklan tetap akurat dari API.'
+            ? 'Data campaign belum tersedia untuk tanggal ini. Total iklan di atas tetap akurat.'
             : 'Belum ada campaign aktif pada tanggal ini.'))
 
       const body = rows.length
@@ -197,9 +200,8 @@ window.__ModuleLoader__.load({
 
       return h('div', null,
         h('div', { className: 'sr-sec' }, 'Per campaign', h('small', null, 'laba = penjualan × margin − biaya iklan')),
-        h('div', { className: 'sr-note', style: { marginTop: 0, marginBottom: 10 } },
-          'ACOS = biaya iklan ÷ penjualan dari iklan. Kolom "Break-even" adalah margin kontribusi tiap produk — ',
-          'selama ACOS di bawah angka itu, campaign untung. ACOS di atasnya = iklan makan lebih banyak daripada sisa margin.'),
+        h('div', { className: 'sr-hint' },
+          'ACOS di bawah Break-even = untung; di atasnya = rugi (ACOS = biaya iklan ÷ penjualan).'),
         h('div', { className: 'sr-box' },
           h('div', { className: 'sr-scroll' },
             h('table', { className: 'sr-t' },
@@ -268,23 +270,23 @@ window.__ModuleLoader__.load({
 
     function Spark({ rows }) {
       const days = rows.slice(-14)
+      if (!days.length) return null
       const max = Math.max(1, ...days.map((d) => Math.max(Number(d.sales) || 0, Number(d.spend) || 0)))
-      const H = 56
-      return h('div', null,
+      const H = 58
+      const hh = (v) => { const n = Number(v) || 0; return n ? Math.max(3, Math.round((n / max) * H)) : 2 }
+      return h('div', { className: 'sr-sparkwrap' },
         h('div', { className: 'sr-spark' },
           ...days.map((d, i) => h('div', {
             key: i, className: 'sr-bar',
-            title: `${d.date}: penjualan ${rp(d.sales)} · iklan ${rp(d.spend)} · ROAS ${r2(d.roas)}`,
+            title: `${d.date} · penjualan ${rp(d.sales)} · iklan ${rp(d.spend)} · ROAS ${r2(d.roas)}`,
           },
-            h('i', { style: { height: Math.max(2, ((Number(d.sales) || 0) / max) * H) + 'px', background: 'var(--dsw-alias-brand-primary-new-colorprimary-new-color)' } }),
-            h('i', { style: { height: Math.max(2, ((Number(d.spend) || 0) / max) * H * 0.55) + 'px', background: 'var(--dsw-alias-state-warn-primary)' } })))),
+            h('i', { className: 'sr-b-sales', style: { height: hh(d.sales) + 'px' } }),
+            h('i', { className: 'sr-b-spend', style: { height: hh(d.spend) + 'px' } })))),
         h('div', { className: 'sr-spark-x' },
-          h('span', null, days[0] ? days[0].date.slice(5) : ''),
-          h('span', null, days.length ? `${days.length} hari terakhir` : ''),
-          h('span', null, days.length ? days[days.length - 1].date.slice(5) : '')))
+          h('span', null, days[0].date.slice(5)),
+          h('span', null, days[days.length - 1].date.slice(5))))
     }
 
-    /* ---------- page ---------- */
     function Dashboard() {
       const [state, setState] = useState(null)
       const [date, setDate] = useState('')
@@ -395,16 +397,22 @@ window.__ModuleLoader__.load({
               error ? h(Pill, { tone: 'bad' }, error) : null)),
 
           h('div', { className: 'sr-grid' },
-            h(Card, { label: 'Penjualan', value: rp(store?.sales ?? sales), note: `${num(store?.orders ?? ads?.orders)} pesanan · AOV ${rp(store?.aov)}` }),
+            h(Card, { label: 'Penjualan', value: rp(store?.sales ?? sales), note: `${num(store?.orders ?? ads?.orders)} pesanan${store?.aov != null ? ' · AOV ' + rp(store.aov) : ''}` }),
             h(Card, { label: 'Biaya iklan', value: rp(spend), note: `ROAS ${r2(roas)} · ACOS ${pct(acos)}` }),
             h(Card, { label: 'Laba iklan*', value: rp(Math.abs(adProfit)), trend: adProfit >= 0 ? '▲' : '▼', note: `margin ${pct(blendedCm)} campuran · sebelum biaya tetap` }),
             h(Card, {
               label: 'Pembatalan',
               value: canc?.available === false ? '—' : num(canc?.count ?? 0),
-              note: canc?.available === false ? 'belum tersedia (parser)' : rp(canc?.value ?? 0) + ' refund',
+              note: canc?.available === false ? 'belum tersedia' : rp(canc?.value ?? 0) + ' refund',
             }),
             h(Card, { label: 'Saldo iklan', value: rp(day?.wallet?.balance), note: `terpakai hari ini ${rp(day?.wallet?.spentToday)}` }),
-            h(Card, { label: 'Pengunjung', value: num(store?.visitors), note: `konversi ${pct(store?.conversionPct, 2)}` })),
+            h(Card, {
+              label: 'Pengunjung',
+              value: num(store?.visitors),
+              note: store?.visitors == null
+                ? (date === state.days[state.days.length - 1] ? 'belum terambil — coba sync ulang' : 'hanya tersedia untuk hari berjalan')
+                : `konversi ${pct(store?.conversionPct, 2)}`,
+            })),
 
           h(CampaignTable, { rows: campaignRows, campaignsAvailable: ads?.campaignsAvailable }),
 
@@ -450,10 +458,28 @@ window.__ModuleLoader__.load({
         h('path', { d: 'M3 3h18l-2 5H5L3 3z' }), h('path', { d: 'M5 8v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8' }), h('path', { d: 'M9 12h6' }))
     }
 
+    class PanelBoundary extends React.Component {
+      constructor(props) { super(props); this.state = { error: null } }
+      static getDerivedStateFromError(error) { return { error } }
+      componentDidCatch(error, info) { console.error('shopee-report: render failed', error, info) }
+      render() {
+        if (!this.state.error) return this.props.children
+        return h('div', { className: 'sr-root' },
+          h('style', null, CSS),
+          h('div', { className: 'sr-wrap' },
+            h('div', { className: 'sr-empty' },
+              h('strong', null, 'Dashboard gagal dirender'),
+              h('div', null, String(this.state.error && this.state.error.message ? this.state.error.message : this.state.error)),
+              h('div', { className: 'sr-note' }, 'Reload halaman. Kalau berulang, jalankan sync lalu reload.'))))
+      }
+    }
+
+    const Page = () => h(PanelBoundary, null, h(Dashboard))
+
     return {
       inject: ['slots'],
       apply(ctx) {
-        ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: PANEL_ID }, Dashboard))
+        ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: PANEL_ID }, Page))
         ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({ name: 'sidebar.panellist', id: PANEL_ID, order: 26, label: 'Shopee' }, Icon))
       },
     }
