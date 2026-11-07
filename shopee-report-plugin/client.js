@@ -219,7 +219,7 @@ window.__ModuleLoader__.load({
               h('tbody', null, ...body)))))
     }
 
-    function WeeklySection({ week, econ, onSyncWeek, busy }) {
+    function WeeklySection({ week, econ, onSyncWeek, busy, sync }) {
       if (!week) return null
       const cm = (econ && econ.defaultCmPct) || 45
       const profit = (week.sales || 0) * (cm / 100) - (week.spend || 0)
@@ -261,11 +261,18 @@ window.__ModuleLoader__.load({
               h('th', null, 'Status'))),
             h('tbody', null, ...rows))))
 
+      const missing = week.missing.length
       const controls = h('div', { className: 'sr-controls', style: { marginTop: 12 } },
-        h('button', { className: 'sr-btn', disabled: busy, onClick: onSyncWeek }, busy ? 'Menyinkronkan…' : 'Sync minggu ini'),
-        h('div', { className: 'sr-note', style: { marginTop: 0 } }, 'Hanya tanggal yang belum punya snapshot yang ditarik.'))
+        h('button', { className: 'sr-btn', disabled: busy, onClick: () => onSyncWeek(missing === 0) },
+          busy ? 'Menyinkronkan…' : missing ? `Sync ${missing} hari yang belum ada` : 'Sync ulang 7 hari'),
+        h('div', { className: 'sr-note', style: { marginTop: 0 } },
+          missing ? 'Hanya tanggal yang belum punya snapshot yang ditarik.' : 'Semua 7 hari sudah lengkap — tombol akan menarik ulang semuanya.'))
 
-      return h('div', null, header, cards, table, controls)
+      const lastResult = sync && sync.mode === 'week' && sync.message
+        ? h('div', { className: 'sr-note', style: { marginTop: 6 } }, String(sync.message).split('\n').slice(-1)[0])
+        : null
+
+      return h('div', null, header, cards, table, controls, lastResult)
     }
 
     function Spark({ rows }) {
@@ -320,10 +327,10 @@ window.__ModuleLoader__.load({
         } catch (e) { setError(String(e.message || e)) } finally { setBusy(false) }
       }, [date, load])
 
-      const syncWeek = useCallback(async () => {
+      const syncWeek = useCallback(async (force) => {
         setBusy(true); setError('')
         try {
-          const res = await fetch(API + '/sync-week', { method: 'POST', credentials: 'same-origin' })
+          const res = await fetch(API + '/sync-week' + (force ? '?force=1' : ''), { method: 'POST', credentials: 'same-origin' })
           const payload = await res.json().catch(() => ({}))
           if (!res.ok) throw new Error(payload?.message || payload?.error || `Gagal sync minggu (${res.status})`)
           setTimeout(() => { load(date).catch(() => {}) }, 700)
@@ -422,7 +429,7 @@ window.__ModuleLoader__.load({
             : h('div', { className: 'sr-box' }, h('div', { style: { padding: '20px 16px', color: 'var(--dsw-alias-label-secondary)', fontSize: '12.5px' } },
                 `Baru ada ${(state.summaries || []).length} hari data. Grafik muncul setelah 3 hari — sync otomatis berjalan 3× sehari.`)),
 
-          h(WeeklySection, { week: state.week, econ, onSyncWeek: syncWeek, busy: busy || running }),
+          h(WeeklySection, { week: state.week, econ, onSyncWeek: syncWeek, busy: busy || running, sync: state.sync }),
 
           canc?.items?.length ? h(Cancellations, { canc }) : null,
 

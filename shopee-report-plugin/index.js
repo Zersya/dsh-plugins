@@ -116,12 +116,15 @@ export function apply(ctx, config = {}) {
     return { ok: true, date, days, day, economics, summaries, week, sync: await readStatus(), running: child !== null }
   }
 
-  const startWeekSync = async () => {
+  const startWeekSync = async (url) => {
+    const force = url && url.searchParams.get('force') === '1'
     if (child) return { ok: false, error: 'already-running' }
     const script = path.join(collectorDir, 'sync-week.mjs')
     try { await fs.access(script) } catch { return { ok: false, error: 'week-script-missing', message: `Tidak ada ${script}` } }
     await writeStatus({ state: 'running', mode: 'week', startedAt: new Date().toISOString() })
-    child = spawn(process.execPath, [script, `--data-dir=${dataDir}`], { cwd: collectorDir, env: { ...process.env, EGO_TASK_SPACE: taskSpace }, stdio: ['ignore', 'pipe', 'pipe'] })
+    const weekArgs = [script, `--data-dir=${dataDir}`]
+    if (force) weekArgs.push('--force')
+    child = spawn(process.execPath, weekArgs, { cwd: collectorDir, env: { ...process.env, EGO_TASK_SPACE: taskSpace }, stdio: ['ignore', 'pipe', 'pipe'] })
     let out = ''
     let err = ''
     child.stdout.on('data', (c) => { out += String(c).slice(0, 4000) })
@@ -163,7 +166,7 @@ export function apply(ctx, config = {}) {
         if (url.pathname === `${ROUTE_PREFIX}/state`) { sendJson(res, 200, await buildState(url)); return }
         if (url.pathname === `${ROUTE_PREFIX}/sync-week`) {
           if (req.method !== 'POST') { sendJson(res, 405, { error: 'method-not-allowed' }); return }
-          const result = await startWeekSync()
+          const result = await startWeekSync(url)
           sendJson(res, result.ok ? 202 : 409, result)
           return
         }
