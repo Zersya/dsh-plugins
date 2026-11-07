@@ -36,17 +36,18 @@ window.__ModuleLoader__.load({
       border-top:5px solid var(--dsw-alias-label-secondary)}
     .sr-dd-list{position:absolute;right:0;top:calc(100% + 6px);z-index:20;min-width:150px;max-height:260px;overflow:auto;
       padding:5px;border-radius:11px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l2);
-      box-shadow:0 10px 28px #00000040}
+      box-shadow:0 10px 28px color-mix(in srgb, var(--dsw-alias-label-primary) 22%, transparent)}
     .sr-dd-item{display:block;width:100%;text-align:left;font:inherit;font-size:12.5px;padding:8px 10px;border-radius:7px;
       border:0;background:transparent;color:var(--dsw-alias-label-primary);cursor:pointer;font-variant-numeric:tabular-nums}
     .sr-dd-item:hover{background:var(--dsw-alias-interactive-bg-hover)}
-    .sr-dd-item[aria-selected="true"]{background:var(--dsw-alias-interactive-bg-hover);font-weight:600}
+    .sr-dd-item[aria-selected="true"]{font-weight:600}
+    .sr-dd-item.is-active,.sr-dd-item:hover{background:var(--dsw-alias-interactive-bg-hover)}
     .sr-btn{background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground);border:1px solid transparent;font-weight:550}
     .sr-btn:hover:not([disabled]){opacity:.88}
     .sr-btn[disabled]{opacity:.5;cursor:default}
     .sr-root button:focus-visible,.sr-root select:focus-visible{outline:2px solid var(--dsw-alias-state-warn-primary);outline-offset:2px}
 
-    .sr-pill{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;font-size:11.5px;
+    .sr-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:0.75rem;
       font-weight:500;color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-2);
       border:1px solid var(--dsw-alias-border-l2);white-space:nowrap}
     .sr-dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
@@ -54,17 +55,19 @@ window.__ModuleLoader__.load({
     .sr-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(172px,1fr));gap:12px;margin:20px 0 8px}
     .sr-card{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:14px;
       padding:14px 15px;min-width:0}
-    .sr-k{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-secondary);font-weight:550}
+    .sr-k{font-size:0.72rem;letter-spacing:.05em;text-transform:uppercase;color:var(--dsw-alias-label-secondary);font-weight:550}
     .sr-v{margin-top:8px;font-size:21px;line-height:1.15;font-weight:600;letter-spacing:-.02em;
       font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-primary);overflow-wrap:anywhere}
-    .sr-n{margin-top:6px;font-size:11px;line-height:1.45;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}
+    .sr-n{margin-top:6px;font-size:0.72rem;line-height:1.45;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}
     .sr-sign{font-size:12px;margin-right:3px;color:var(--dsw-alias-label-secondary)}
 
     .sr-sec{display:flex;align-items:baseline;gap:10px;margin:30px 0 10px;font-size:13px;font-weight:600;letter-spacing:-.005em}
     .sr-sec small{font-weight:400;font-size:11.5px;color:var(--dsw-alias-label-secondary)}
 
     .sr-box{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:14px;overflow:hidden}
-    .sr-scroll{overflow-x:auto}
+    .sr-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+    .sr-swipe{display:none;padding:0 14px 10px;font-size:0.75rem;color:var(--dsw-alias-label-secondary)}
+    @media (max-width:680px){.sr-swipe{display:block}}
     table.sr-t{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px}
     table.sr-t th{position:sticky;top:0;z-index:1;text-align:left;font-weight:550;font-size:10.5px;letter-spacing:.05em;
       text-transform:uppercase;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-2);
@@ -74,7 +77,7 @@ window.__ModuleLoader__.load({
     table.sr-t tbody tr:hover td{background:var(--dsw-alias-interactive-bg-hover)}
     .sr-r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
     .sr-name{font-weight:550;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .sr-tag{margin-top:3px;font-size:11px;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px}
+    .sr-tag{margin-top:3px;font-size:0.72rem;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px}
     .sr-strong{font-weight:600}
 
     .sr-verdict{margin-top:20px;padding:14px 16px;border-radius:14px;background:var(--dsw-alias-bg-layer-1);
@@ -86,7 +89,7 @@ window.__ModuleLoader__.load({
 
     .sr-empty{padding:52px 20px;text-align:center;color:var(--dsw-alias-label-secondary)}
     .sr-empty strong{display:block;color:var(--dsw-alias-label-primary);font-size:14px;font-weight:600;margin-bottom:6px}
-    .sr-empty code{font-family:ui-monospace,SFMono-Regular,monospace;font-size:11.5px;padding:3px 7px;border-radius:7px;
+    .sr-empty code{font-family:ui-monospace,SFMono-Regular,monospace;font-size:0.75rem;padding:3px 7px;border-radius:7px;
       background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-label-primary)}
 
     .sr-spark{display:flex;align-items:flex-end;justify-content:space-between;gap:6px;height:64px;
@@ -100,14 +103,19 @@ window.__ModuleLoader__.load({
       background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);cursor:pointer;font-size:16px;line-height:1}
     .sr-iconbtn:hover:not([disabled]){background:var(--dsw-alias-interactive-bg-hover)}
     .sr-iconbtn[disabled]{opacity:.35;cursor:default}
-    .sr-synced{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--dsw-alias-label-secondary)}
+    .sr-synced{display:inline-flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--dsw-alias-label-secondary)}
     .sr-two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     @media (max-width:820px){.sr-two{grid-template-columns:1fr}}
-    .sr-hint{margin:0 0 10px;font-size:11.5px;color:var(--dsw-alias-label-secondary)}
-    .sr-spark-x{display:flex;justify-content:space-between;padding:6px 2px 10px;font-size:10.5px;
-      letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
+    @media (prefers-reduced-motion: reduce){
+      .sr-btn,.sr-iconbtn,.sr-dd-btn,.sr-dd-item,.sr-select{transition:none}
+    }
+    .sr-hint{margin:0 0 10px;font-size:0.75rem;color:var(--dsw-alias-label-secondary)}
+    .sr-spark-x{display:flex;justify-content:space-between;padding:6px 2px 10px;font-size:0.72rem;
+      letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
     .sr-note{margin-top:14px;font-size:11.5px;color:var(--dsw-alias-label-secondary);line-height:1.6}
-    .sr-err{color:var(--dsw-alias-label-primary);border-left:2px solid var(--dsw-alias-state-error-primary);padding-left:10px;margin-top:8px}
+    .sr-err{margin-top:10px;padding:9px 11px;border-radius:10px;color:var(--dsw-alias-label-primary);
+      background:color-mix(in srgb, var(--dsw-alias-state-error-primary) 12%, transparent);
+      border:1px solid color-mix(in srgb, var(--dsw-alias-state-error-primary) 35%, transparent)}
     .sr-skel{height:13px;border-radius:6px;background:var(--dsw-alias-bg-layer-2)}
     @media (max-width:680px){
       .sr-wrap{padding:20px 14px 52px}
@@ -156,24 +164,54 @@ window.__ModuleLoader__.load({
 
     function DatePicker({ value, days, onChange }) {
       const [open, setOpen] = useState(false)
+      const [active, setActive] = useState(0)
       const boxRef = React.useRef(null)
+      const btnRef = React.useRef(null)
+      const list = (days || []).slice().reverse()
+
       useEffect(() => {
         if (!open) return
+        setActive(Math.max(0, list.indexOf(value)))
         const onDoc = (ev) => { if (boxRef.current && !boxRef.current.contains(ev.target)) setOpen(false) }
         document.addEventListener('mousedown', onDoc)
         return () => document.removeEventListener('mousedown', onDoc)
       }, [open])
-      const list = (days || []).slice().reverse()
+
+      const choose = (d) => { setOpen(false); onChange(d); if (btnRef.current) btnRef.current.focus() }
+      const onButtonKey = (ev) => {
+        if (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'ArrowDown') { ev.preventDefault(); setOpen(true) }
+      }
+      const onListKey = (ev) => {
+        if (ev.key === 'Escape') { ev.preventDefault(); setOpen(false); if (btnRef.current) btnRef.current.focus(); return }
+        if (ev.key === 'ArrowDown') { ev.preventDefault(); setActive((i) => Math.min(list.length - 1, i + 1)) }
+        if (ev.key === 'ArrowUp') { ev.preventDefault(); setActive((i) => Math.max(0, i - 1)) }
+        if (ev.key === 'Home') { ev.preventDefault(); setActive(0) }
+        if (ev.key === 'End') { ev.preventDefault(); setActive(list.length - 1) }
+        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); const d = list[active]; if (d) choose(d) }
+      }
+
       return h('div', { className: 'sr-dd', ref: boxRef },
         h('button', {
-          className: 'sr-dd-btn', 'aria-haspopup': 'listbox', 'aria-expanded': open,
-          onClick: () => setOpen((v) => !v),
+          ref: btnRef, className: 'sr-dd-btn', 'aria-haspopup': 'listbox', 'aria-expanded': open,
+          'aria-label': 'Pilih tanggal laporan',
+          onClick: () => setOpen((v) => !v), onKeyDown: onButtonKey,
         }, h('span', null, value || 'pilih tanggal'), h('span', { className: 'sr-dd-caret' })),
-        open ? h('div', { className: 'sr-dd-list', role: 'listbox' },
-          ...list.map((d) => h('button', {
-            key: d, role: 'option', 'aria-selected': d === value, className: 'sr-dd-item',
-            onClick: () => { setOpen(false); onChange(d) },
+        open ? h('div', {
+          className: 'sr-dd-list', role: 'listbox', tabIndex: -1,
+          'aria-label': 'Tanggal tersedia',
+          'aria-activedescendant': list[active] ? 'sr-dd-opt-' + list[active] : undefined,
+          onKeyDown: onListKey,
+          ref: (el) => { if (el) el.focus() },
+        },
+          ...list.map((d, i) => h('button', {
+            key: d, id: 'sr-dd-opt-' + d, role: 'option', 'aria-selected': d === value,
+            className: 'sr-dd-item' + (i === active ? ' is-active' : ''),
+            onMouseEnter: () => setActive(i), onClick: () => choose(d),
           }, d))) : null)
+    }
+
+    function TableHint() {
+      return h('div', { className: 'sr-swipe' }, 'Geser tabel ke samping untuk kolom lainnya \u2192')
     }
 
     function Pill({ tone, children }) {
@@ -215,16 +253,16 @@ window.__ModuleLoader__.load({
             h('table', { className: 'sr-t' },
               h('thead', null,
                 h('tr', null,
-                  h('th', null, 'Campaign'),
-                  h('th', { className: 'sr-r' }, 'Biaya'),
-                  h('th', { className: 'sr-r' }, 'Penjualan'),
-                  h('th', { className: 'sr-r' }, 'ROAS'),
-                  h('th', { className: 'sr-r' }, 'ACOS'),
-                  h('th', { className: 'sr-r' }, 'Break-even'),
-                  h('th', { className: 'sr-r' }, 'Margin'),
-                  h('th', { className: 'sr-r' }, 'Laba'),
-                  h('th', null, 'Status'))),
-              h('tbody', null, ...body)))))
+                  h('th', { scope: 'col' }, 'Campaign'),
+                  h('th', { scope: 'col', className: 'sr-r' }, 'Biaya'),
+                  h('th', { scope: 'col', className: 'sr-r' }, 'Penjualan'),
+                  h('th', { scope: 'col', className: 'sr-r' }, 'ROAS'),
+                  h('th', { scope: 'col', className: 'sr-r' }, 'ACOS'),
+                  h('th', { scope: 'col', className: 'sr-r' }, 'Break-even'),
+                  h('th', { scope: 'col', className: 'sr-r' }, 'Margin'),
+                  h('th', { scope: 'col', className: 'sr-r' }, 'Laba'),
+                  h('th', { scope: 'col' }, 'Status'))),
+              h('tbody', null, ...body))), h(TableHint)))
     }
 
     function WeeklySection({ week, econ, onSyncWeek, busy, sync }) {
@@ -260,19 +298,19 @@ window.__ModuleLoader__.load({
         h('div', { className: 'sr-scroll' },
           h('table', { className: 'sr-t' },
             h('thead', null, h('tr', null,
-              h('th', null, 'Tanggal'),
-              h('th', { className: 'sr-r' }, 'Penjualan'),
-              h('th', { className: 'sr-r' }, 'Biaya iklan'),
-              h('th', { className: 'sr-r' }, 'ROAS'),
-              h('th', { className: 'sr-r' }, 'Pesanan'),
-              h('th', { className: 'sr-r' }, 'Batal'),
-              h('th', null, 'Status'))),
-            h('tbody', null, ...rows))))
+              h('th', { scope: 'col' }, 'Tanggal'),
+              h('th', { scope: 'col', className: 'sr-r' }, 'Penjualan'),
+              h('th', { scope: 'col', className: 'sr-r' }, 'Biaya iklan'),
+              h('th', { scope: 'col', className: 'sr-r' }, 'ROAS'),
+              h('th', { scope: 'col', className: 'sr-r' }, 'Pesanan'),
+              h('th', { scope: 'col', className: 'sr-r' }, 'Batal'),
+              h('th', { scope: 'col' }, 'Status'))),
+            h('tbody', null, ...rows))), h(TableHint))
 
       const missing = week.missing.length
       const controls = h('div', { className: 'sr-controls', style: { marginTop: 12 } },
         missing
-          ? h('button', { className: 'sr-btn', disabled: busy, onClick: () => onSyncWeek(false) },
+          ? h('button', { className: 'sr-btn', disabled: busy, 'aria-busy': busy ? 'true' : 'false', onClick: () => onSyncWeek(false) },
               busy ? 'Menyinkronkan…' : `Sync ${missing} hari yang belum ada`)
           : h('span', { className: 'sr-synced' },
               h('span', { className: 'sr-dot', style: { background: 'var(--dsw-alias-state-success-primary)' } }),
@@ -281,7 +319,7 @@ window.__ModuleLoader__.load({
           missing ? 'Hanya tanggal yang belum punya snapshot yang ditarik.' : 'Data 7 hari sudah lengkap.'))
 
       const lastResult = sync && sync.mode === 'week' && sync.message
-        ? h('div', { className: 'sr-note', style: { marginTop: 6 } }, String(sync.message).split('\n').slice(-1)[0])
+        ? h('div', { className: 'sr-note', style: { marginTop: 6 }, role: 'status', 'aria-live': 'polite' }, String(sync.message).split('\n').slice(-1)[0])
         : null
 
       return h('div', null, header, cards, table, controls, lastResult)
@@ -306,15 +344,15 @@ window.__ModuleLoader__.load({
 
       const feeTable = h('div', { className: 'sr-box' },
         h('table', { className: 'sr-t' },
-          h('thead', null, h('tr', null, h('th', null, 'Komponen biaya'), h('th', { className: 'sr-r' }, '% omzet'))),
-          h('tbody', null, ...feeRows)))
+          h('thead', null, h('tr', null, h('th', { scope: 'col' }, 'Komponen biaya'), h('th', { scope: 'col', className: 'sr-r' }, '% omzet'))),
+          h('tbody', null, ...feeRows)), h(TableHint))
 
       const prodTable = h('div', { className: 'sr-box' },
         h('table', { className: 'sr-t' },
           h('thead', null, h('tr', null,
-            h('th', null, 'Produk'), h('th', { className: 'sr-r' }, 'HPP'), h('th', { className: 'sr-r' }, 'Harga'),
-            h('th', { className: 'sr-r' }, 'Margin'), h('th', { className: 'sr-r' }, 'Break-even ROAS'))),
-          h('tbody', null, ...prodRows)))
+            h('th', { scope: 'col' }, 'Produk'), h('th', { scope: 'col', className: 'sr-r' }, 'HPP'), h('th', { scope: 'col', className: 'sr-r' }, 'Harga'),
+            h('th', { scope: 'col', className: 'sr-r' }, 'Margin'), h('th', { scope: 'col', className: 'sr-r' }, 'Break-even ROAS'))),
+          h('tbody', null, ...prodRows)), h(TableHint))
 
       return h('div', null,
         h('div', { className: 'sr-sec' }, 'Biaya Shopee & HPP',
@@ -330,7 +368,12 @@ window.__ModuleLoader__.load({
       const max = Math.max(1, ...days.map((d) => Math.max(Number(d.sales) || 0, Number(d.spend) || 0)))
       const H = 58
       const hh = (v) => { const n = Number(v) || 0; return n ? Math.max(3, Math.round((n / max) * H)) : 2 }
-      return h('div', { className: 'sr-sparkwrap' },
+      const lo = Math.min(...days.map((d) => Number(d.sales) || 0))
+      const hi = Math.max(...days.map((d) => Number(d.sales) || 0))
+      return h('div', {
+        className: 'sr-sparkwrap', role: 'img',
+        'aria-label': `Tren ${days.length} hari: penjualan ${rp(lo)} sampai ${rp(hi)}`,
+      },
         h('div', { className: 'sr-spark' },
           ...days.map((d, i) => h('div', {
             key: i, className: 'sr-bar',
@@ -467,7 +510,7 @@ window.__ModuleLoader__.load({
                 }, '\u203A')),
               alreadySynced
                 ? h('span', { className: 'sr-synced' }, h('span', { className: 'sr-dot', style: { background: 'var(--dsw-alias-state-success-primary)' } }), 'sudah di-sync')
-                : h('button', { className: 'sr-btn', disabled: busy || running, onClick: sync }, running ? 'Menyinkronkan…' : isToday ? 'Sync sekarang' : 'Sync hari ini'),
+                : h('button', { className: 'sr-btn', disabled: busy || running, 'aria-busy': running ? 'true' : 'false', onClick: sync }, running ? 'Menyinkronkan…' : isToday ? 'Sync sekarang' : 'Sync hari ini'),
               running ? h(Pill, { tone: 'warn' }, 'sync berjalan') : null,
               error ? h(Pill, { tone: 'bad' }, error) : null)),
 
@@ -520,14 +563,14 @@ window.__ModuleLoader__.load({
         h('div', { className: 'sr-box' },
           h('table', { className: 'sr-t' },
             h('thead', null, h('tr', null,
-              h('th', null, 'Pesanan'), h('th', null, 'Pembeli'), h('th', null, 'Produk'),
-              h('th', { className: 'sr-r' }, 'Refund'), h('th', null, 'Alasan'))),
+              h('th', { scope: 'col' }, 'Pesanan'), h('th', { scope: 'col' }, 'Pembeli'), h('th', { scope: 'col' }, 'Produk'),
+              h('th', { scope: 'col', className: 'sr-r' }, 'Refund'), h('th', { scope: 'col' }, 'Alasan'))),
             h('tbody', null, ...(canc.items || []).map((it, i) => h('tr', { key: i },
               h('td', null, it.order),
               h('td', null, it.buyer),
               h('td', null, h('div', { className: 'sr-name', title: it.product }, it.product)),
               h('td', { className: 'sr-r' }, rp(it.refund)),
-              h('td', null, it.reason || '–')))))))
+              h('td', null, it.reason || '–')))))), h(TableHint))
     }
 
     function Icon() {
