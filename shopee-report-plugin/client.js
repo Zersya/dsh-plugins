@@ -217,6 +217,55 @@ window.__ModuleLoader__.load({
               h('tbody', null, ...body)))))
     }
 
+    function WeeklySection({ week, econ, onSyncWeek, busy }) {
+      if (!week) return null
+      const cm = (econ && econ.defaultCmPct) || 45
+      const profit = (week.sales || 0) * (cm / 100) - (week.spend || 0)
+
+      const header = h('div', { className: 'sr-sec' },
+        'Ringkasan 7 hari',
+        h('small', null, `${week.from} → ${week.to} · ${week.days}/${week.expected} hari`),
+        week.missing.length
+          ? h('span', { className: 'sr-pill', style: { marginLeft: 'auto' } },
+              h('span', { className: 'sr-dot', style: { background: 'var(--dsw-alias-state-warn-primary)' } }),
+              h('span', null, `${week.missing.length} hari belum di-sync`))
+          : null)
+
+      const cards = h('div', { className: 'sr-grid' },
+        h(Card, { label: 'Penjualan 7 hari', value: rp(week.sales), note: `${num(week.orders)} pesanan · AOV ${rp(week.aov)}` }),
+        h(Card, { label: 'Biaya iklan 7 hari', value: rp(week.spend), note: `ROAS ${r2(week.roas)} · ACOS ${pct(week.acosPct)}` }),
+        h(Card, { label: 'Laba iklan 7 hari*', value: rp(Math.abs(profit)), trend: profit >= 0 ? '\u25B2' : '\u25BC', note: `margin ${pct(cm)} campuran` }),
+        h(Card, { label: 'Pembatalan 7 hari', value: num(week.cancelled), note: rp(week.cancelledValue) + ' refund' }))
+
+      const rows = week.rows.map((r, i) => h('tr', { key: i },
+        h('td', null, r.date),
+        h('td', { className: 'sr-r' }, r.present ? rp(r.sales) : '\u2014'),
+        h('td', { className: 'sr-r' }, r.present ? rp(r.spend) : '\u2014'),
+        h('td', { className: 'sr-r' }, r.present ? r2(r.roas) : '\u2014'),
+        h('td', { className: 'sr-r' }, r.present ? num(r.orders) : '\u2014'),
+        h('td', { className: 'sr-r' }, r.present ? num(r.cancelled) : '\u2014'),
+        h('td', null, h(Pill, { tone: r.present ? 'good' : 'idle' }, r.present ? 'ada' : 'belum sync'))))
+
+      const table = h('div', { className: 'sr-box', style: { marginTop: 10 } },
+        h('div', { className: 'sr-scroll' },
+          h('table', { className: 'sr-t' },
+            h('thead', null, h('tr', null,
+              h('th', null, 'Tanggal'),
+              h('th', { className: 'sr-r' }, 'Penjualan'),
+              h('th', { className: 'sr-r' }, 'Biaya iklan'),
+              h('th', { className: 'sr-r' }, 'ROAS'),
+              h('th', { className: 'sr-r' }, 'Pesanan'),
+              h('th', { className: 'sr-r' }, 'Batal'),
+              h('th', null, 'Status'))),
+            h('tbody', null, ...rows))))
+
+      const controls = h('div', { className: 'sr-controls', style: { marginTop: 12 } },
+        h('button', { className: 'sr-btn', disabled: busy, onClick: onSyncWeek }, busy ? 'Menyinkronkan…' : 'Sync minggu ini'),
+        h('div', { className: 'sr-note', style: { marginTop: 0 } }, 'Hanya tanggal yang belum punya snapshot yang ditarik.'))
+
+      return h('div', null, header, cards, table, controls)
+    }
+
     function Spark({ rows }) {
       const days = rows.slice(-14)
       const max = Math.max(1, ...days.map((d) => Math.max(Number(d.sales) || 0, Number(d.spend) || 0)))
@@ -265,6 +314,16 @@ window.__ModuleLoader__.load({
           const res = await fetch(API + '/sync' + (date ? `?date=${date}` : ''), { method: 'POST', credentials: 'same-origin' })
           const payload = await res.json().catch(() => ({}))
           if (!res.ok) throw new Error(payload?.message || payload?.error || `Gagal sync (${res.status})`)
+          setTimeout(() => { load(date).catch(() => {}) }, 700)
+        } catch (e) { setError(String(e.message || e)) } finally { setBusy(false) }
+      }, [date, load])
+
+      const syncWeek = useCallback(async () => {
+        setBusy(true); setError('')
+        try {
+          const res = await fetch(API + '/sync-week', { method: 'POST', credentials: 'same-origin' })
+          const payload = await res.json().catch(() => ({}))
+          if (!res.ok) throw new Error(payload?.message || payload?.error || `Gagal sync minggu (${res.status})`)
           setTimeout(() => { load(date).catch(() => {}) }, 700)
         } catch (e) { setError(String(e.message || e)) } finally { setBusy(false) }
       }, [date, load])
@@ -354,6 +413,8 @@ window.__ModuleLoader__.load({
             ? h('div', { className: 'sr-box' }, h(Spark, { rows: state.summaries || [] }))
             : h('div', { className: 'sr-box' }, h('div', { style: { padding: '20px 16px', color: 'var(--dsw-alias-label-secondary)', fontSize: '12.5px' } },
                 `Baru ada ${(state.summaries || []).length} hari data. Grafik muncul setelah 3 hari — sync otomatis berjalan 3× sehari.`)),
+
+          h(WeeklySection, { week: state.week, econ, onSyncWeek: syncWeek, busy: busy || running }),
 
           canc?.items?.length ? h(Cancellations, { canc }) : null,
 

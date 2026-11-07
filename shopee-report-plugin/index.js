@@ -52,6 +52,46 @@ export function apply(ctx, config = {}) {
   const writeStatus = (value) => fs.writeFile(statusFile, JSON.stringify(value, null, 2)).catch(() => {})
   const readStatus = async () => (await readJson(statusFile)) || { state: 'idle' }
 
+  const buildWeek = async (endDate, allDays) => {
+    if (!endDate) return null
+    const end = new Date(endDate + 'T00:00:00Z')
+    const wanted = []
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(end.getTime() - i * 86400e3).toISOString().slice(0, 10)
+      wanted.push(d)
+    }
+    const rows = []
+    for (const d of wanted) {
+      const snap = allDays.includes(d) ? await readJson(path.join(dataDir, 'days', `${d}.json`)) : null
+      rows.push({
+        date: d,
+        present: !!snap,
+        sales: snap?.store?.sales ?? snap?.ads?.sales ?? null,
+        spend: snap?.ads?.spend ?? null,
+        roas: snap?.ads?.roas ?? null,
+        orders: snap?.store?.orders ?? snap?.ads?.orders ?? null,
+        cancelled: snap?.cancellations?.count ?? null,
+        cancelledValue: snap?.cancellations?.value ?? null,
+      })
+    }
+    const have = rows.filter((r) => r.present)
+    const sum = (k) => have.reduce((a, r) => a + (Number(r[k]) || 0), 0)
+    const sales = sum('sales')
+    const spend = sum('spend')
+    const orders = sum('orders')
+    const cancelled = have.reduce((a, r) => a + (Number(r.cancelled) || 0), 0)
+    const cancelledValue = sum('cancelledValue')
+    return {
+      from: wanted[0], to: wanted[wanted.length - 1],
+      days: have.length, expected: wanted.length, missing: rows.filter((r) => !r.present).map((r) => r.date),
+      sales, spend, orders, cancelled, cancelledValue,
+      roas: spend ? +(sales / spend).toFixed(2) : null,
+      acosPct: sales ? +((spend / sales) * 100).toFixed(1) : null,
+      aov: orders ? Math.round(sales / orders) : null,
+      rows,
+    }
+  }
+
   const buildState = async (url) => {
     const days = await listDays(dataDir)
     const wanted = url.searchParams.get('date') || ''
@@ -64,7 +104,23 @@ export function apply(ctx, config = {}) {
       if (!snap) continue
       summaries.push({ date: d, sales: snap.store?.sales ?? null, spend: snap.ads?.spend ?? null, roas: snap.ads?.roas ?? null, orders: snap.store?.orders ?? null, cancelled: snap.cancellations?.count ?? 0, cancelledValue: snap.cancellations?.value ?? 0 })
     }
-    return { ok: true, date, days, day, economics, summaries, sync: await readStatus(), running: child !== null }
+    const week = await buildWeek(date, days)
+    return { ok: true, date, days, day, economics, summaries, week, sync: await readStatus(), running: child !== null }
+  }
+
+  const startWeekSync = async () => {
+    if (child) return { ok: false, error: 'already-running' }
+    const script = path.join(collectorDir, 'sync-week.mjs')
+    try { await fs.access(script) } catch { return { ok: false, error: 'week-script-missing', message: `Tidak ada ${script}` } }
+    await writeStatus({ state: 'running', mode: 'week', startedAt: new Date().toISOString() })
+    child = spawn(process.execPath, [script, `--data-dir=${dataDir}`], { cwd: collectorDir, env: { ...process.env, EGO_TASK_SPACE: taskSpace }, stdio: ['ignore', 'pipe', 'pipe'] })
+    let out = ''
+    let err = ''
+    child.stdout.on('data', (c) => { out += String(c).slice(0, 4000) })
+    child.stderr.on('data', (c) => { err += String(c).slice(0, 4000) })
+    child.on('error', (error) => { child = null; writeStatus({ state: 'error', message: String(error?.message || error) }) })
+    child.on('close', (code) => { child = null; writeStatus({ state: code === 0 ? 'idle' : 'error', mode: 'week', code, message: (err || out).trim().split('\n').slice(-8).join('\n'), finishedAt: new Date().toISOString() }) })
+    return { ok: true, started: true }
   }
 
   const startSync = async (url) => {
@@ -97,6 +153,12 @@ export function apply(ctx, config = {}) {
       try { url = new URL(req.url, 'http://localhost') } catch { sendJson(res, 400, { error: 'bad-request' }); return }
       try {
         if (url.pathname === `${ROUTE_PREFIX}/state`) { sendJson(res, 200, await buildState(url)); return }
+        if (url.pathname === `${ROUTE_PREFIX}/sync-week`) {
+          if (req.method !== 'POST') { sendJson(res, 405, { error: 'method-not-allowed' }); return }
+          const result = await startWeekSync()
+          sendJson(res, result.ok ? 202 : 409, result)
+          return
+        }
         if (url.pathname === `${ROUTE_PREFIX}/sync`) {
           if (req.method !== 'POST') { sendJson(res, 405, { error: 'method-not-allowed' }); return }
           const result = await startSync(url)

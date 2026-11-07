@@ -62,10 +62,10 @@ try {
 } catch (e) { errors.push('wallet:' + String(e.message || e).slice(0, 100)) }
 
 /* 2. per-campaign table (DOM; polling + header-driven mapping) */
-const poll = async (fn, { timeout = 20000, interval = 600 } = {}) => {
+const poll = async (fn, { timeout = 20000, interval = 600, arg } = {}) => {
   const t0 = Date.now()
   while (Date.now() - t0 < timeout) {
-    try { const v = await page.evaluate(fn); if (v) return v } catch (e) { /* keep polling */ }
+    try { const v = await page.evaluate(fn, arg); if (v) return v } catch (e) { /* keep polling */ }
     await page.waitForTimeout(interval)
   }
   return null
@@ -196,7 +196,7 @@ try {
       const reason = bl.find((x) => /Ingin mengubah|Barang tidak|Rusak|Salah|Berubah pikiran|Tidak sesuai|Stok habis/i.test(x)) || ''
       res.push({
         order: (bl[orderIdx + 1] || '').trim(),
-        buyer: bl[0] === '-' ? bl[1] : bl[0],
+        buyer: (bl.slice(0, 4).find((x) => x && x !== '-' && !/^Aksi$/i.test(x)) || '').trim(),
         product: (bl.find((x) => /[A-Za-z]{6,}/.test(x) && !/Pengembalian|Kompensasi|Total|Ingin|Dana|Dibatalkan|SPX|Variasi|Pre-Order|Mengerti/i.test(x)) || '').slice(0, 90),
         refund: Number(refund.replace(/[^\d]/g, '')) || 0,
         reason,
@@ -206,7 +206,7 @@ try {
       })
     }
     return res
-  }, { timeout: 25000 })
+  }, { timeout: 25000, arg: dmy })
 
   const seen = new Set()
   out.cancellations.items = (items || []).filter((it) => { if (!it.order || seen.has(it.order)) return false; seen.add(it.order); return true })
