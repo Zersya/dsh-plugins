@@ -69,7 +69,9 @@ window.__ModuleLoader__.load({
 .sr-box{position:relative}
     .sr-box.is-scrollable::after{content:'';position:absolute;top:0;right:0;bottom:0;width:26px;pointer-events:none;
       background:linear-gradient(to right, transparent, var(--dsw-alias-bg-layer-1));
-      border-radius:0 13px 13px 0}
+      border-radius:0 13px 13px 0;opacity:1;transition:opacity .15s ease}
+    .sr-box.is-scrollable.at-end::after{opacity:0}
+    @media (prefers-reduced-motion: reduce){.sr-box.is-scrollable::after{transition:none}}
     table.sr-t{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px}
     table.sr-t th{position:sticky;top:0;z-index:1;text-align:left;font-weight:550;font-size:0.72rem;letter-spacing:.05em;
       text-transform:uppercase;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-2);
@@ -112,6 +114,7 @@ window.__ModuleLoader__.load({
     @media (prefers-reduced-motion: reduce){
       .sr-btn,.sr-iconbtn,.sr-dd-btn,.sr-dd-item,.sr-select{transition:none}
     }
+    .sr-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
     .sr-hint{margin:0 0 10px;font-size:0.75rem;color:var(--dsw-alias-label-secondary)}
     .sr-spark-x{display:flex;justify-content:space-between;padding:6px 2px 10px;font-size:0.72rem;
       letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
@@ -320,7 +323,7 @@ window.__ModuleLoader__.load({
           missing ? 'Hanya tanggal yang belum punya snapshot yang ditarik.' : 'Data 7 hari sudah lengkap.'))
 
       const lastResult = sync && sync.mode === 'week' && sync.message
-        ? h('div', { className: 'sr-note', style: { marginTop: 6 }, role: 'status', 'aria-live': 'polite' }, String(sync.message).split('\n').slice(-1)[0])
+        ? h('div', { className: 'sr-note', style: { marginTop: 6 }, }, String(sync.message).split('\n').slice(-1)[0])
         : null
 
       return h('div', null, header, cards, table, controls, lastResult)
@@ -441,7 +444,17 @@ window.__ModuleLoader__.load({
           for (const sc of document.querySelectorAll('.sr-scroll')) {
             const box = sc.closest('.sr-box')
             if (!box) continue
-            box.classList.toggle('is-scrollable', sc.scrollWidth > sc.clientWidth + 2)
+            const overflows = sc.scrollWidth > sc.clientWidth + 2
+            box.classList.toggle('is-scrollable', overflows)
+            const atEnd = overflows && sc.scrollLeft + sc.clientWidth >= sc.scrollWidth - 2
+            box.classList.toggle('at-end', atEnd)
+            if (overflows && !sc.dataset.srBound) {
+              sc.dataset.srBound = '1'
+              sc.addEventListener('scroll', () => {
+                const b = sc.closest('.sr-box')
+                if (b) b.classList.toggle('at-end', sc.scrollLeft + sc.clientWidth >= sc.scrollWidth - 2)
+              }, { passive: true })
+            }
           }
         }
         mark()
@@ -465,6 +478,13 @@ window.__ModuleLoader__.load({
       const store = day?.store
       const canc = day?.cancellations
       const running = state?.sync?.state === 'running'
+      const syncAnnounce = running
+        ? 'Menyinkronkan data Shopee…'
+        : state?.sync?.state === 'error'
+          ? 'Sync gagal. Coba lagi.'
+          : state?.sync?.finishedAt
+            ? `Sync selesai ${new Date(state.sync.finishedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`
+            : ''
 
       if (!state) return h('div', { className: 'sr-root' }, h('style', null, CSS), h('div', { className: 'sr-wrap' }, h('div', { className: 'sr-empty' }, error || 'Memuat laporan…')))
 
@@ -520,6 +540,7 @@ window.__ModuleLoader__.load({
                   : day?.syncAt ? `sync terakhir ${new Date(day.syncAt).toLocaleString('id-ID')}` : 'belum pernah sync',
                 day?.partial ? ' · data sebagian' : '')),
             h('div', { className: 'sr-controls' },
+              h('span', { className: 'sr-sr-only', role: 'status', 'aria-live': 'polite' }, syncAnnounce),
               h('div', { className: 'sr-datenav' },
                 h('button', {
                   className: 'sr-iconbtn', 'aria-label': 'hari sebelumnya', disabled: !prevDay,

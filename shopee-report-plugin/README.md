@@ -82,3 +82,16 @@ See `collector/README.md` for a launchd example and the CLI flags.
 ## License
 
 MIT
+
+## UI regression test
+
+`test/ui-a11y.sh` drives a running DSH instance and checks the panel objectively:
+
+```bash
+./test/ui-a11y.sh 'http://host:port/?token=…'
+```
+
+Checks: panel opens · contrast in light and dark (per text node, WCAG AA) · one polite live
+region with `role="status"` · every `th` scoped · chart has a text alternative · keyboard focus
+ring on buttons · date picker opens with Enter and closes with Escape. Exit code is non-zero when
+any check fails, so it can gate a release.
