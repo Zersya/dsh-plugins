@@ -173,7 +173,7 @@ window.__ModuleLoader__.load({
 
     function CampaignTable({ rows, campaignsAvailable }) {
       const empty = h('tr', null,
-        h('td', { colSpan: 8, style: { padding: '18px 14px', color: 'var(--dsw-alias-label-secondary)' } },
+        h('td', { colSpan: 9, style: { padding: '18px 14px', color: 'var(--dsw-alias-label-secondary)' } },
           campaignsAvailable === false
             ? 'Data per campaign belum bisa diambil (parser DOM perlu diperbaiki). Total iklan tetap akurat dari API.'
             : 'Belum ada campaign aktif pada tanggal ini.'))
@@ -188,6 +188,7 @@ window.__ModuleLoader__.load({
             h('td', { className: 'sr-r' }, rp(c.spend)),
             h('td', { className: 'sr-r' }, rp(c.sales)),
             h('td', { className: 'sr-r' }, r2(c.roas)),
+            h('td', { className: 'sr-r' }, pct(c.acosPct)),
             h('td', { className: 'sr-r' }, r2(c.beRoas)),
             h('td', { className: 'sr-r' }, pct(c.cmPct)),
             h('td', { className: 'sr-r sr-strong' }, (c.profit >= 0 ? '\u25B2 ' : '\u25BC ') + rp(Math.abs(c.profit))),
@@ -196,6 +197,9 @@ window.__ModuleLoader__.load({
 
       return h('div', null,
         h('div', { className: 'sr-sec' }, 'Per campaign', h('small', null, 'laba = penjualan × margin − biaya iklan')),
+        h('div', { className: 'sr-note', style: { marginTop: 0, marginBottom: 10 } },
+          'ACOS = biaya iklan ÷ penjualan dari iklan. Kolom "Break-even" adalah margin kontribusi tiap produk — ',
+          'selama ACOS di bawah angka itu, campaign untung. ACOS di atasnya = iklan makan lebih banyak daripada sisa margin.'),
         h('div', { className: 'sr-box' },
           h('div', { className: 'sr-scroll' },
             h('table', { className: 'sr-t' },
@@ -205,6 +209,7 @@ window.__ModuleLoader__.load({
                   h('th', { className: 'sr-r' }, 'Biaya'),
                   h('th', { className: 'sr-r' }, 'Penjualan'),
                   h('th', { className: 'sr-r' }, 'ROAS'),
+                  h('th', { className: 'sr-r' }, 'ACOS'),
                   h('th', { className: 'sr-r' }, 'Break-even'),
                   h('th', { className: 'sr-r' }, 'Margin'),
                   h('th', { className: 'sr-r' }, 'Laba'),
