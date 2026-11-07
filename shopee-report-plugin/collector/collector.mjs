@@ -62,39 +62,54 @@ try {
 } catch (e) { errors.push('wallet:' + String(e.message || e).slice(0, 100)) }
 
 /* 2. per-campaign table (DOM; polling + header-driven mapping) */
-const poll = async (fn, { timeout = 20000, interval = 600, arg } = {}) => {
+const makePoll = (target) => async (fn, { timeout = 20000, interval = 600, arg } = {}) => {
   const t0 = Date.now()
   while (Date.now() - t0 < timeout) {
-    try { const v = await page.evaluate(fn, arg); if (v) return v } catch (e) { /* keep polling */ }
-    await page.waitForTimeout(interval)
+    try { const v = await target.evaluate(fn, arg); if (v) return v } catch (e) { /* keep polling */ }
+    await target.waitForTimeout(interval)
   }
   return null
 }
+const poll = makePoll(page)
 
 if (out.ads && (DATE === todayStr || DATE === yestStr)) {
+  let campPage = page
   try {
-    await page.goto('https://seller.shopee.co.id/portal/marketing/pas/index', { timeout: 90000 }).catch(() => {})
-    await poll(() => document.querySelectorAll('.eds-tabs__nav-tab').length >= 2, { timeout: 25000 })
-    await page.evaluate(() => {
+    campPage = await task.newPage()
+    const pollC = makePoll(campPage)
+    await campPage.goto('https://seller.shopee.co.id/portal/marketing/pas/index', { timeout: 90000 }).catch(() => {})
+    await pollC(() => document.querySelectorAll('.eds-tabs__nav-tab').length >= 2, { timeout: 25000 })
+    await campPage.evaluate(() => {
       const tab = [...document.querySelectorAll('.eds-tabs__nav-tab')].find((e) => (e.innerText || '').includes('Individual'))
       if (tab) { tab.scrollIntoView({ block: 'center' }); tab.click() }
     })
-    await page.waitForTimeout(1500)
+    await campPage.waitForTimeout(1500)
 
     const want = DATE === todayStr ? 'Hari Ini' : 'Kemarin'
-    await page.evaluate((w) => {
+    await campPage.evaluate((w) => {
       const lbl = [...document.querySelectorAll('p,div,span')]
         .find((e) => new RegExp('^' + w + ' \\(GMT\\+7\\)$').test((e.innerText || '').trim()))
         || [...document.querySelectorAll('p,div,span')].find((e) => /^\(GMT\+7\)$/.test((e.innerText || '').trim()))
       if (lbl && !new RegExp('^' + w).test(lbl.innerText.trim())) lbl.click()
     }, want)
-    await page.waitForTimeout(1200)
-    await page.evaluate((w) => {
+    await campPage.waitForTimeout(1200)
+    await campPage.evaluate((w) => {
       const opt = [...document.querySelectorAll('div,span,li,p')].find((e) => (e.innerText || '').trim() === w)
       if (opt) opt.click()
     }, want)
 
-    const table = await poll(() => {
+    await campPage.evaluate(() => {
+      const el = [...document.querySelectorAll('div,span')].find((e) => /Daftar Iklan Produk/.test(e.innerText || '') && (e.innerText || '').length < 400)
+      if (el) el.scrollIntoView({ block: 'start' })
+      else window.scrollTo(0, document.body.scrollHeight * 0.55)
+    })
+    await campPage.waitForTimeout(1500)
+
+    // scroll + poll: the campaign table only mounts once its section is in view
+    let table = null
+    const campDeadline = Date.now() + 60000
+    while (Date.now() < campDeadline) {
+      table = await campPage.evaluate(() => {
       const headerRow = [...document.querySelectorAll('tr')].find((tr) => /Biaya Iklan/.test(tr.innerText || '') && /ROAS/.test(tr.innerText || ''))
       const nameRows = [...document.querySelectorAll('tr')].filter((tr) => /GMV Max/.test(tr.innerText || '') && (tr.innerText || '').length < 400)
       if (!headerRow || !nameRows.length) return null
@@ -111,7 +126,11 @@ if (out.ads && (DATE === todayStr || DATE === yestStr)) {
         rows.push({ nameCells, mapped })
       }
       return { headers, rows }
-    }, { timeout: 30000 })
+      })
+      if (table) break
+      await campPage.evaluate(() => window.scrollBy(0, 260))
+      await campPage.waitForTimeout(2200)
+    }
 
     if (!table || !table.rows.length) { errors.push('campaigns: tabel tidak ter-render'); out.partial = true; out.ads.campaignsAvailable = false }
     else {
@@ -143,32 +162,53 @@ if (out.ads && (DATE === todayStr || DATE === yestStr)) {
       out.ads.campaignsAvailable = out.ads.campaigns.length > 0
     }
   } catch (e) { errors.push('campaigns:' + String(e.message || e).slice(0, 120)); out.partial = true; out.ads.campaignsAvailable = false }
+  try { if (campPage !== page) await campPage.close() } catch (e) { /* ignore */ }
 }
 
 /* 3. store real-time totals (today only) */
 if (DATE === todayStr) {
+  let storePage = page
   try {
-    for (let attempt = 0; attempt < 3; attempt++) {
-      await page.goto('https://seller.shopee.co.id/datacenter/overview', { timeout: 90000 }).catch(() => {})
-      await page.waitForTimeout(9000)
-      const t = await page.evaluate(() => {
+    storePage = await task.newPage()
+    for (let attempt = 0; attempt < 4; attempt++) {
+      await storePage.goto('https://seller.shopee.co.id/datacenter/overview', { timeout: 90000 }).catch(() => {})
+      await storePage.waitForTimeout(6000)
+      await storePage.evaluate(() => {
+        const el = [...document.querySelectorAll('div,span')].find((e) => /Kriteria Utama/.test(e.innerText || '') && (e.innerText || '').length < 2000)
+        if (el) el.scrollIntoView({ block: 'start' })
+      })
+      await storePage.waitForTimeout(6000)
+      const t = await storePage.evaluate(() => {
         const b = document.body.innerText || ''
         const i = b.indexOf('Kriteria Utama')
         return i < 0 ? '' : b.slice(i, i + 900)
       })
-      if (!/Penjualan\nRp/.test(t) && !/Penjualan\s*\n?\s*Rp/.test(t)) continue
-      const grab = (label) => { const m = t.match(new RegExp(label + '[^\\d-]*(Rp[\\d.]+|[\\d.,]+%?)')); return m ? m[1] : null }
-      const pi = (v) => (v && /Rp/.test(v) ? Number(v.replace(/[^\d]/g, '')) : v ? Number(String(v).replace(/[^\d]/g, '')) : null)
+      if (!/Penjualan[\s\S]{0,90}Rp[\d.]/.test(t)) { errors.push('store: metrik belum tampil (percobaan ' + (attempt + 1) + ')'); continue }
+      const lines = t.split('\n').map((x) => x.trim()).filter(Boolean)
+      const nextNum = (label) => {
+        const i = lines.findIndex((x) => x === label || x.startsWith(label))
+        if (i < 0) return null
+        for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
+          const v = lines[j]
+          if (/^Rp[\d.]+$/.test(v)) return Number(v.replace(/[^\d]/g, ''))
+          if (/^[\d.,]+%$/.test(v)) return Number(v.replace('%', '').replace('.', '').replace(',', '.'))
+          if (/^[\d.]+$/.test(v)) return Number(v)
+        }
+        return null
+      }
       out.store = {
-        sales: pi(grab('Penjualan')), orders: Number(String(grab('Pesanan') || '').replace(/[^\d]/g, '')) || null,
-        conversionPct: Number(String(grab('Tingkat Konversi Pesanan') || '').replace(',', '.').replace('%', '')) || null,
-        visitors: Number(String(grab('Total Pengunjung') || '').replace(/[^\d]/g, '')) || null,
-        productClicks: Number(String(grab('Produk Diklik') || '').replace(/[^\d]/g, '')) || null,
-        aov: pi(grab('Penjualan per Pesanan')), contrib: null,
+        sales: nextNum('Penjualan'),
+        orders: nextNum('Pesanan'),
+        conversionPct: nextNum('Tingkat Konversi Pesanan'),
+        visitors: nextNum('Total Pengunjung'),
+        productClicks: nextNum('Produk Diklik'),
+        aov: nextNum('Penjualan per Pesanan'),
+        contrib: null,
       }
       break
     }
   } catch (e) { errors.push('store:' + String(e.message || e).slice(0, 120)); out.partial = true }
+  try { if (storePage !== page) await storePage.close() } catch (e) { /* ignore */ }
 }
 
 /* 4. cancellations / refunds for the date */
